@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+node_modules/
+.vscode/
+.idea/
+*.egg-info/
+dist/
+build/
+serviceAccountKey.json
+firebase-debug.log
+.firebase/

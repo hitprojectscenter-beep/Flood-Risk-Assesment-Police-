@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSRS — מערכת הערכת סיכון צונאמי לתחנות משטרה</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Google Fonts - Hebrew -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header id="app-header">
+        <div class="header-right">
+            <div class="logo-icon">🛡️</div>
+            <div class="header-titles">
+                <h1>TSRS — מערכת הערכת סיכון צונאמי</h1>
+                <span class="header-subtitle">Tsunami Station Risk Score — משטרת ישראל</span>
+            </div>
+        </div>
+        <div class="header-left">
+            <span id="current-datetime" class="header-datetime"></span>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div id="app-container">
+        <!-- Sidebar (Right side for RTL) -->
+        <aside id="sidebar">
+            <!-- District Selector -->
+            <div class="sidebar-section">
+                <h3 class="section-title">🏛️ בחירת נפה</h3>
+                <select id="district-select" class="control-select">
+                    <option value="all">כל הארץ</option>
+                    <option value="north">צפון</option>
+                    <option value="haifa">חיפה</option>
+                    <option value="center">מרכז</option>
+                    <option value="tel_aviv">תל-אביב</option>
+                    <option value="south">דרום</option>
+                </select>
+            </div>
+
+            <!-- Wave Height Slider -->
+            <div class="sidebar-section">
+                <h3 class="section-title">🌊 גובה גל</h3>
+                <div class="slider-container">
+                    <input type="range" id="wave-slider" min="0.5" max="10" step="0.5" value="2.0">
+                    <div class="slider-labels">
+                        <span>0.5 מ'</span>
+                        <span id="wave-value" class="wave-value">2.0 מ'</span>
+                        <span>10 מ'</span>
+                    </div>
+                    <div id="wave-severity" class="severity-badge severity-medium">בינוני</div>
+                </div>
+            </div>
+
+            <!-- Layer Controls -->
+            <div class="sidebar-section">
+                <h3 class="section-title">🗺️ שכבות מפה</h3>
+                <div class="layer-toggles">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="layer-stations" checked> תחנות משטרה
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="layer-inundation" checked> אזור הצפה
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="layer-coastline" checked> קו חוף
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="layer-roads"> כבישים (OSM)
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="layer-buildings"> מבנים (OSM)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="sidebar-section">
+                <h3 class="section-title">📊 מקרא TSRS</h3>
+                <div class="legend">
+                    <div class="legend-item"><span class="legend-color" style="background:#EF4444"></span> קריטי (80-100)</div>
+                    <div class="legend-item"><span class="legend-color" style="background:#F97316"></span> גבוה (60-80)</div>
+                    <div class="legend-item"><span class="legend-color" style="background:#EAB308"></span> בינוני (40-60)</div>
+                    <div class="legend-item"><span class="legend-color" style="background:#22C55E"></span> נמוך (20-40)</div>
+                    <div class="legend-item"><span class="legend-color" style="background:#3B82F6"></span> מינימלי (0-20)</div>
+                </div>
+                <div class="legend" style="margin-top:10px">
+                    <h4 style="margin-bottom:6px; font-size:13px; color:#666">הצפה</h4>
+                    <div class="legend-item"><span class="legend-color" style="background:rgba(234,179,8,0.6)"></span> 0.5–2 מ' (קל)</div>
+                    <div class="legend-item"><span class="legend-color" style="background:rgba(249,115,22,0.6)"></span> 2–5 מ' (בינוני)</div>
+                    <div class="legend-item"><span class="legend-color" style="background:rgba(239,68,68,0.6)"></span> 5+ מ' (חמור)</div>
+                </div>
+            </div>
+
+            <!-- Station Summary (shown on click) -->
+            <div id="station-summary" class="sidebar-section" style="display:none">
+                <h3 class="section-title">📋 פרטי תחנה</h3>
+                <div id="station-summary-content"></div>
+            </div>
+        </aside>
+
+        <!-- Map Container -->
+        <main id="map-wrapper">
+            <div id="map"></div>
+
+            <!-- Operational Panel (bottom overlay) -->
+            <div id="operational-panel" class="op-panel" style="display:none">
+                <div class="op-panel-header">
+                    <h3 id="op-station-name">הנחיות מבצעיות</h3>
+                    <button id="op-close" class="op-close-btn" title="סגור">✕</button>
+                </div>
+                <div id="op-panel-content" class="op-panel-body"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <!-- App JS Modules -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/tsrs.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/inundation.js"></script>
+    <script src="js/operational.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
