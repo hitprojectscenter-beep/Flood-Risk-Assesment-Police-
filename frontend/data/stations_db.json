@@ -1,0 +1,902 @@
+{
+  "NAHARIYA": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "NAHARIYA",
+      "station_name": "נהריה",
+      "station_name_en": "Nahariya",
+      "district": "צפון",
+      "district_en": "North",
+      "population": 15851,
+      "coast_distance_km": 0.3,
+      "H_score": 85.0,
+      "V_score": 65.7,
+      "O_score": 50.0,
+      "R_score": 37.1,
+      "I_score": 49.5,
+      "tsrs_score": 65.6,
+      "risk_tier": "HIGH",
+      "risk_tier_he": "גבוה",
+      "backup_units": 3,
+      "priority": 2,
+      "critical_facilities": 14,
+      "vertical_shelters": 8,
+      "evacuation_routes": 5
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            35.090165871281485,
+            33.03013646495816
+          ],
+          [
+            35.12221703459742,
+            33.02502476221043
+          ],
+          [
+            35.12528731786331,
+            32.98453273434024
+          ],
+          [
+            35.09963900439783,
+            32.97717897645542
+          ],
+          [
+            35.07637439347295,
+            32.98893627369914
+          ],
+          [
+            35.076675877594255,
+            33.01563183840043
+          ],
+          [
+            35.090165871281485,
+            33.03013646495816
+          ]
+        ]
+      ]
+    }
+  },
+  "AKKO": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "AKKO",
+      "station_name": "עכו",
+      "station_name_en": "Akko",
+      "district": "צפון",
+      "district_en": "North",
+      "population": 107349,
+      "coast_distance_km": 0.2,
+      "H_score": 95.0,
+      "V_score": 75.6,
+      "O_score": 54.0,
+      "R_score": 72.4,
+      "I_score": 48.9,
+      "tsrs_score": 76.4,
+      "risk_tier": "HIGH",
+      "risk_tier_he": "גבוה",
+      "backup_units": 3,
+      "priority": 2,
+      "critical_facilities": 3,
+      "vertical_shelters": 4,
+      "evacuation_routes": 3
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            35.07060539874804,
+            32.95868713129559
+          ],
+          [
+            35.0907735630865,
+            32.93753755786224
+          ],
+          [
+            35.10336855870537,
+            32.91624791308199
+          ],
+          [
+            35.07376685212205,
+            32.897295783567934
+          ],
+          [
+            35.05170381853122,
+            32.916267739359256
+          ],
+          [
+            35.05739295909172,
+            32.9422210721155
+          ],
+          [
+            35.07060539874804,
+            32.95868713129559
+          ]
+        ]
+      ]
+    }
+  },
+  "HAIFA_DOWNTOWN": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "HAIFA_DOWNTOWN",
+      "station_name": "חיפה מרכז",
+      "station_name_en": "Haifa Downtown",
+      "district": "חיפה",
+      "district_en": "Haifa",
+      "population": 98886,
+      "coast_distance_km": 0.5,
+      "H_score": 87.7,
+      "V_score": 59.4,
+      "O_score": 33.5,
+      "R_score": 50.4,
+      "I_score": 33.5,
+      "tsrs_score": 61.9,
+      "risk_tier": "HIGH",
+      "risk_tier_he": "גבוה",
+      "backup_units": 3,
+      "priority": 2,
+      "critical_facilities": 13,
+      "vertical_shelters": 20,
+      "evacuation_routes": 3
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.997393182705295,
+            32.85261227463615
+          ],
+          [
+            35.01726415153183,
+            32.82579508876971
+          ],
+          [
+            35.023196015387235,
+            32.79665043386192
+          ],
+          [
+            34.99388147815224,
+            32.78640997548475
+          ],
+          [
+            34.95818998135485,
+            32.79941652058295
+          ],
+          [
+            34.97058924551817,
+            32.828194805329865
+          ],
+          [
+            34.997393182705295,
+            32.85261227463615
+          ]
+        ]
+      ]
+    }
+  },
+  "HAIFA_KRAYOT": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "HAIFA_KRAYOT",
+      "station_name": "קריות",
+      "station_name_en": "Krayot",
+      "district": "חיפה",
+      "district_en": "Haifa",
+      "population": 49438,
+      "coast_distance_km": 1.2,
+      "H_score": 72.3,
+      "V_score": 55.2,
+      "O_score": 34.6,
+      "R_score": 38.6,
+      "I_score": 48.1,
+      "tsrs_score": 55.0,
+      "risk_tier": "MEDIUM",
+      "risk_tier_he": "בינוני",
+      "backup_units": 2,
+      "priority": 3,
+      "critical_facilities": 13,
+      "vertical_shelters": 21,
+      "evacuation_routes": 5
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            35.07982341959786,
+            32.881950530872466
+          ],
+          [
+            35.092566496539895,
+            32.85986132811044
+          ],
+          [
+            35.098460069663936,
+            32.835673859527255
+          ],
+          [
+            35.07941940132835,
+            32.80894261039748
+          ],
+          [
+            35.049946955214075,
+            32.83719478560473
+          ],
+          [
+            35.05135661659598,
+            32.86268626634563
+          ],
+          [
+            35.07982341959786,
+            32.881950530872466
+          ]
+        ]
+      ]
+    }
+  },
+  "HADERA": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "HADERA",
+      "station_name": "חדרה",
+      "station_name_en": "Hadera",
+      "district": "חיפה",
+      "district_en": "Haifa",
+      "population": 109466,
+      "coast_distance_km": 2.0,
+      "H_score": 49.9,
+      "V_score": 59.1,
+      "O_score": 73.4,
+      "R_score": 72.3,
+      "I_score": 20.6,
+      "tsrs_score": 58.1,
+      "risk_tier": "MEDIUM",
+      "risk_tier_he": "בינוני",
+      "backup_units": 2,
+      "priority": 3,
+      "critical_facilities": 3,
+      "vertical_shelters": 24,
+      "evacuation_routes": 6
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.89388038074433,
+            32.47080866048902
+          ],
+          [
+            34.92690110106611,
+            32.453734219461595
+          ],
+          [
+            34.917811174696304,
+            32.434414784341406
+          ],
+          [
+            34.90060236303469,
+            32.40741175671802
+          ],
+          [
+            34.86569895518992,
+            32.43037731815087
+          ],
+          [
+            34.86578416329499,
+            32.453631842394635
+          ],
+          [
+            34.89388038074433,
+            32.47080866048902
+          ]
+        ]
+      ]
+    }
+  },
+  "NETANYA": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "NETANYA",
+      "station_name": "נתניה",
+      "station_name_en": "Netanya",
+      "district": "מרכז",
+      "district_en": "Center",
+      "population": 117056,
+      "coast_distance_km": 0.4,
+      "H_score": 94.8,
+      "V_score": 57.9,
+      "O_score": 30.9,
+      "R_score": 45.6,
+      "I_score": 28.1,
+      "tsrs_score": 62.7,
+      "risk_tier": "HIGH",
+      "risk_tier_he": "גבוה",
+      "backup_units": 3,
+      "priority": 2,
+      "critical_facilities": 10,
+      "vertical_shelters": 3,
+      "evacuation_routes": 6
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.85803095911869,
+            32.3561022153066
+          ],
+          [
+            34.875422979573685,
+            32.34215875496843
+          ],
+          [
+            34.88857562371984,
+            32.31669062337763
+          ],
+          [
+            34.85147955646063,
+            32.28803997742607
+          ],
+          [
+            34.82630720925997,
+            32.31522738545041
+          ],
+          [
+            34.82361477432172,
+            32.34003484022477
+          ],
+          [
+            34.85803095911869,
+            32.3561022153066
+          ]
+        ]
+      ]
+    }
+  },
+  "HERZLIYA": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "HERZLIYA",
+      "station_name": "הרצליה",
+      "station_name_en": "Herzliya",
+      "district": "מרכז",
+      "district_en": "Center",
+      "population": 94507,
+      "coast_distance_km": 0.6,
+      "H_score": 87.3,
+      "V_score": 37.1,
+      "O_score": 46.1,
+      "R_score": 55.2,
+      "I_score": 33.3,
+      "tsrs_score": 58.1,
+      "risk_tier": "MEDIUM",
+      "risk_tier_he": "בינוני",
+      "backup_units": 2,
+      "priority": 3,
+      "critical_facilities": 8,
+      "vertical_shelters": 9,
+      "evacuation_routes": 6
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.77902782004516,
+            32.194687650629994
+          ],
+          [
+            34.81276980530052,
+            32.17483834966486
+          ],
+          [
+            34.80147601189846,
+            32.156110066236266
+          ],
+          [
+            34.78025073848858,
+            32.13283007240257
+          ],
+          [
+            34.76597580431302,
+            32.14831982500943
+          ],
+          [
+            34.75800585468393,
+            32.173892922875524
+          ],
+          [
+            34.77902782004516,
+            32.194687650629994
+          ]
+        ]
+      ]
+    }
+  },
+  "TEL_AVIV_NORTH": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "TEL_AVIV_NORTH",
+      "station_name": "תל אביב צפון",
+      "station_name_en": "Tel Aviv North",
+      "district": "תל-אביב",
+      "district_en": "Tel Aviv",
+      "population": 58309,
+      "coast_distance_km": 0.3,
+      "H_score": 81.1,
+      "V_score": 68.9,
+      "O_score": 23.2,
+      "R_score": 28.7,
+      "I_score": 21.6,
+      "tsrs_score": 57.7,
+      "risk_tier": "MEDIUM",
+      "risk_tier_he": "בינוני",
+      "backup_units": 2,
+      "priority": 3,
+      "critical_facilities": 3,
+      "vertical_shelters": 19,
+      "evacuation_routes": 3
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.7776807719714,
+            32.142230014829615
+          ],
+          [
+            34.80420426295389,
+            32.12547281878631
+          ],
+          [
+            34.80957677452514,
+            32.089306923205584
+          ],
+          [
+            34.77551596610484,
+            32.0804147441913
+          ],
+          [
+            34.75789548569293,
+            32.09265178422841
+          ],
+          [
+            34.74679099878515,
+            32.124108071461755
+          ],
+          [
+            34.7776807719714,
+            32.142230014829615
+          ]
+        ]
+      ]
+    }
+  },
+  "TEL_AVIV_JAFFA": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "TEL_AVIV_JAFFA",
+      "station_name": "יפו",
+      "station_name_en": "Jaffa",
+      "district": "תל-אביב",
+      "district_en": "Tel Aviv",
+      "population": 110448,
+      "coast_distance_km": 0.2,
+      "H_score": 101.3,
+      "V_score": 33.0,
+      "O_score": 55.9,
+      "R_score": 60.5,
+      "I_score": 23.0,
+      "tsrs_score": 63.7,
+      "risk_tier": "HIGH",
+      "risk_tier_he": "גבוה",
+      "backup_units": 3,
+      "priority": 2,
+      "critical_facilities": 7,
+      "vertical_shelters": 6,
+      "evacuation_routes": 3
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.75185562595909,
+            32.07674587680229
+          ],
+          [
+            34.778965204728316,
+            32.06450604217743
+          ],
+          [
+            34.76938948409788,
+            32.041240469965636
+          ],
+          [
+            34.75224679485395,
+            32.02917239073216
+          ],
+          [
+            34.73150530213259,
+            32.035226856353354
+          ],
+          [
+            34.73154584807699,
+            32.06226981467487
+          ],
+          [
+            34.75185562595909,
+            32.07674587680229
+          ]
+        ]
+      ]
+    }
+  },
+  "BAT_YAM": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "BAT_YAM",
+      "station_name": "בת ים",
+      "station_name_en": "Bat Yam",
+      "district": "תל-אביב",
+      "district_en": "Tel Aviv",
+      "population": 67565,
+      "coast_distance_km": 0.15,
+      "H_score": 87.4,
+      "V_score": 71.4,
+      "O_score": 33.0,
+      "R_score": 47.4,
+      "I_score": 44.1,
+      "tsrs_score": 65.6,
+      "risk_tier": "HIGH",
+      "risk_tier_he": "גבוה",
+      "backup_units": 3,
+      "priority": 2,
+      "critical_facilities": 2,
+      "vertical_shelters": 8,
+      "evacuation_routes": 5
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.74226031358378,
+            32.040933711982255
+          ],
+          [
+            34.75979843262297,
+            32.03653616454641
+          ],
+          [
+            34.7553252651849,
+            32.01236920987794
+          ],
+          [
+            34.73858845999495,
+            31.99545118101869
+          ],
+          [
+            34.722660086857054,
+            32.007218176527076
+          ],
+          [
+            34.72809152397457,
+            32.03133401352762
+          ],
+          [
+            34.74226031358378,
+            32.040933711982255
+          ]
+        ]
+      ]
+    }
+  },
+  "RISHON": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "RISHON",
+      "station_name": "ראשון לציון",
+      "station_name_en": "Rishon LeZion",
+      "district": "מרכז",
+      "district_en": "Center",
+      "population": 84615,
+      "coast_distance_km": 2.5,
+      "H_score": 29.7,
+      "V_score": 33.4,
+      "O_score": 37.2,
+      "R_score": 27.8,
+      "I_score": 43.8,
+      "tsrs_score": 32.8,
+      "risk_tier": "LOW",
+      "risk_tier_he": "נמוך",
+      "backup_units": 1,
+      "priority": 4,
+      "critical_facilities": 4,
+      "vertical_shelters": 4,
+      "evacuation_routes": 6
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.79089760929251,
+            31.989134657852485
+          ],
+          [
+            34.80800796746798,
+            31.97094894303656
+          ],
+          [
+            34.81079118884621,
+            31.95108249575567
+          ],
+          [
+            34.78951425085742,
+            31.942163097681767
+          ],
+          [
+            34.77792304344192,
+            31.95577228824126
+          ],
+          [
+            34.77849886675453,
+            31.969878918198635
+          ],
+          [
+            34.79089760929251,
+            31.989134657852485
+          ]
+        ]
+      ]
+    }
+  },
+  "ASHDOD": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "ASHDOD",
+      "station_name": "אשדוד",
+      "station_name_en": "Ashdod",
+      "district": "דרום",
+      "district_en": "South",
+      "population": 103039,
+      "coast_distance_km": 0.8,
+      "H_score": 84.7,
+      "V_score": 41.2,
+      "O_score": 59.4,
+      "R_score": 38.1,
+      "I_score": 39.8,
+      "tsrs_score": 59.7,
+      "risk_tier": "MEDIUM",
+      "risk_tier_he": "בינוני",
+      "backup_units": 2,
+      "priority": 3,
+      "critical_facilities": 12,
+      "vertical_shelters": 12,
+      "evacuation_routes": 5
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.647191065013494,
+            31.82623388176412
+          ],
+          [
+            34.66603049850338,
+            31.81181320265953
+          ],
+          [
+            34.6743810321695,
+            31.794499897778884
+          ],
+          [
+            34.65227041749928,
+            31.781711288055686
+          ],
+          [
+            34.6320671049072,
+            31.794758416246953
+          ],
+          [
+            34.63175782757189,
+            31.815362540624932
+          ],
+          [
+            34.647191065013494,
+            31.82623388176412
+          ]
+        ]
+      ]
+    }
+  },
+  "ASHKELON": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "ASHKELON",
+      "station_name": "אשקלון",
+      "station_name_en": "Ashkelon",
+      "district": "דרום",
+      "district_en": "South",
+      "population": 100717,
+      "coast_distance_km": 0.5,
+      "H_score": 78.2,
+      "V_score": 75.9,
+      "O_score": 58.7,
+      "R_score": 58.6,
+      "I_score": 69.4,
+      "tsrs_score": 71.2,
+      "risk_tier": "HIGH",
+      "risk_tier_he": "גבוה",
+      "backup_units": 3,
+      "priority": 2,
+      "critical_facilities": 10,
+      "vertical_shelters": 3,
+      "evacuation_routes": 6
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.57585026724847,
+            31.686303524005076
+          ],
+          [
+            34.60156420661217,
+            31.684533466073095
+          ],
+          [
+            34.587814076245834,
+            31.655834233927152
+          ],
+          [
+            34.57643363419701,
+            31.646882850415107
+          ],
+          [
+            34.545449139472446,
+            31.65756857577051
+          ],
+          [
+            34.55619979784584,
+            31.68225669003513
+          ],
+          [
+            34.57585026724847,
+            31.686303524005076
+          ]
+        ]
+      ]
+    }
+  },
+  "CAESAREA": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "CAESAREA",
+      "station_name": "אור עקיבא",
+      "station_name_en": "Or Akiva",
+      "district": "חיפה",
+      "district_en": "Haifa",
+      "population": 51265,
+      "coast_distance_km": 1.0,
+      "H_score": 69.8,
+      "V_score": 79.8,
+      "O_score": 66.5,
+      "R_score": 30.1,
+      "I_score": 41.2,
+      "tsrs_score": 66.7,
+      "risk_tier": "HIGH",
+      "risk_tier_he": "גבוה",
+      "backup_units": 3,
+      "priority": 2,
+      "critical_facilities": 2,
+      "vertical_shelters": 3,
+      "evacuation_routes": 4
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.92202069206786,
+            32.5388744430123
+          ],
+          [
+            34.934768289033585,
+            32.51969741036624
+          ],
+          [
+            34.94359512422193,
+            32.498945549270765
+          ],
+          [
+            34.92236713542859,
+            32.482076757445626
+          ],
+          [
+            34.90175318025095,
+            32.499486445253225
+          ],
+          [
+            34.90238429867373,
+            32.51947324168386
+          ],
+          [
+            34.92202069206786,
+            32.5388744430123
+          ]
+        ]
+      ]
+    }
+  },
+  "ATLIT": {
+    "type": "Feature",
+    "properties": {
+      "station_id": "ATLIT",
+      "station_name": "עתלית",
+      "station_name_en": "Atlit",
+      "district": "חיפה",
+      "district_en": "Haifa",
+      "population": 20229,
+      "coast_distance_km": 0.3,
+      "H_score": 84.0,
+      "V_score": 37.0,
+      "O_score": 37.0,
+      "R_score": 74.4,
+      "I_score": 59.8,
+      "tsrs_score": 58.3,
+      "risk_tier": "MEDIUM",
+      "risk_tier_he": "בינוני",
+      "backup_units": 2,
+      "priority": 3,
+      "critical_facilities": 7,
+      "vertical_shelters": 9,
+      "evacuation_routes": 3
+    },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            34.94148327279551,
+            32.71701751812928
+          ],
+          [
+            34.96962198756582,
+            32.703481661170294
+          ],
+          [
+            34.95960906597946,
+            32.67942274484966
+          ],
+          [
+            34.94656440881897,
+            32.65173614854738
+          ],
+          [
+            34.90967183515487,
+            32.67851414160859
+          ],
+          [
+            34.913775953463286,
+            32.71024511908992
+          ],
+          [
+            34.94148327279551,
+            32.71701751812928
+          ]
+        ]
+      ]
+    }
+  }
+}
