@@ -8,7 +8,7 @@ const TSRSMap = (() => {
     let overlayLayers = {};
 
     const ISRAEL_CENTER = [31.5, 34.8];
-    const ISRAEL_BOUNDS = [[29.0, 33.5], [33.5, 36.0]];
+    const ISRAEL_BOUNDS = [[28.5, 33.0], [34.0, 36.5]];
     const COAST_CENTER = [32.0, 34.78];
 
     function init() {
@@ -133,9 +133,9 @@ const TSRSMap = (() => {
 
     function flyToDistrict(districtBounds) {
         if (districtBounds) {
-            map.flyToBounds(districtBounds, { padding: [30, 30], duration: 0.8 });
+            map.fitBounds(districtBounds, { padding: [30, 30], animate: false });
         } else {
-            map.flyTo(COAST_CENTER, 9, { duration: 0.8 });
+            map.setView(COAST_CENTER, 9, { animate: false });
         }
     }
 

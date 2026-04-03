@@ -5,6 +5,7 @@
 const TSRSViz = (() => {
     let stationsLayer = null;
     let selectedStation = null;
+    let lastClickedProps = null; // Store last clicked station for demographic profiling
     const API_BASE = getApiBase();
 
     function getApiBase() {
@@ -136,13 +137,41 @@ const TSRSViz = (() => {
 
     async function loadStations(map, district = 'all') {
         try {
-            // Try cities.json (real municipal boundaries) first, then stations.json (sample)
-            const data = await fetchData(
-                () => FirebaseConfig.getStations(district),
-                `/api/stations?district=${district}`,
-                'data/cities.json'
-            ) || await fetchData(null, '', 'data/stations.json');
+            // Load cities.json FIRST (real municipal boundaries), then fallback to stations.json
+            let data = null;
+            // 1. Try local cities.json (always prefer real boundaries)
+            try {
+                const resp = await fetch('data/cities.json');
+                if (resp.ok) data = await resp.json();
+            } catch(e) {}
+            // 2. Fallback: try stations.json (sample data)
+            if (!data || !data.features || data.features.length === 0) {
+                try {
+                    const resp = await fetch('data/stations.json');
+                    if (resp.ok) data = await resp.json();
+                } catch(e) {}
+            }
+            // 3. Last resort: API
+            if (!data && HAS_API) {
+                try {
+                    const resp = await fetch(`${API_BASE}/api/stations?district=${district}`);
+                    if (resp.ok) data = await resp.json();
+                } catch(e) {}
+            }
             if (!data) { console.warn('No station data available'); return null; }
+
+            // Filter by district if needed
+            if (district !== 'all' && data.features) {
+                const districtMap = {
+                    'north': 'צפון', 'haifa': 'חיפה', 'center': 'מרכז',
+                    'tel_aviv': 'תל-אביב', 'south': 'דרום'
+                };
+                const dHe = districtMap[district] || district;
+                data = {
+                    type: 'FeatureCollection',
+                    features: data.features.filter(f => f.properties.district === dHe)
+                };
+            }
 
             if (stationsLayer) {
                 map.removeLayer(stationsLayer);
@@ -187,6 +216,7 @@ const TSRSViz = (() => {
     function _onStationClick(e, feature, layer, map) {
         const props = feature.properties;
         selectedStation = props.station_id;
+        lastClickedProps = props; // Store for demographic profiling
 
         // Build popup HTML
         const popupHTML = _buildPopupHTML(props);
@@ -199,6 +229,13 @@ const TSRSViz = (() => {
         if (typeof TSRSOps !== 'undefined') {
             TSRSOps.loadOperational(props.station_id);
         }
+
+        // Close sidebar + operational panel when popup closes
+        layer.on('popupclose', () => {
+            document.getElementById('station-summary').style.display = 'none';
+            document.getElementById('operational-panel').style.display = 'none';
+            selectedStation = null;
+        });
     }
 
     // Verbal TSRS interpretations
@@ -299,16 +336,23 @@ const TSRSViz = (() => {
     }
 
     function showDemographicProfile(stationId) {
-        // Find the station
-        let props = null;
-        if (stationsLayer) {
-            stationsLayer.eachLayer(l => {
-                if (l.feature && l.feature.properties.station_id === stationId) {
-                    props = l.feature.properties;
-                }
-            });
+        // Use stored props from last click (more reliable than searching layer)
+        let props = lastClickedProps;
+        // Fallback: search the layer
+        if (!props || props.station_id !== stationId) {
+            props = null;
+            if (stationsLayer) {
+                stationsLayer.eachLayer(l => {
+                    if (l.feature && l.feature.properties.station_id === stationId) {
+                        props = l.feature.properties;
+                    }
+                });
+            }
         }
-        if (!props) return;
+        if (!props) {
+            console.warn('Demographic profile: station not found:', stationId);
+            return;
+        }
 
         const demo = _generateDemographics(props);
         const container = document.getElementById('station-summary');

@@ -69,21 +69,23 @@ const TSRSOverlays = (() => {
     }
 
     function setRoadsVisible(map, visible) {
+        if (!_map && map) { _map = map; _ensurePanes(map); }
         isRoadsEnabled = visible;
         if (visible) {
             _loadRoads();
         } else {
-            if (roadsLayer) { map.removeLayer(roadsLayer); roadsLayer = null; }
+            if (roadsLayer && _map) { _map.removeLayer(roadsLayer); roadsLayer = null; }
             lastRoadsBounds = null;
         }
     }
 
     function setBuildingsVisible(map, visible) {
+        if (!_map && map) { _map = map; _ensurePanes(map); }
         isBuildingsEnabled = visible;
         if (visible) {
             _loadBuildings();
         } else {
-            if (buildingsLayer) { map.removeLayer(buildingsLayer); buildingsLayer = null; }
+            if (buildingsLayer && _map) { _map.removeLayer(buildingsLayer); buildingsLayer = null; }
             lastBuildingsBounds = null;
         }
     }
@@ -254,7 +256,6 @@ const TSRSOverlays = (() => {
                                        '🔴 מתחת לעומק הצפה';
                     const tip = `${name || type || 'מבנה'}<br>${levels} קומות (~${heightM}מ')<br>${statusText}<br>עומק הצפה מירבי: ${maxFloodDepth.toFixed(1)}מ'`;
                     layer.bindTooltip(tip, { direction: 'top', sticky: true });
-                }
                 },
             });
             buildingsLayer.addTo(_map);
