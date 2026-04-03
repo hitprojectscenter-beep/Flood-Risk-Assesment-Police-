@@ -8,6 +8,7 @@ const TSRSInundation = (() => {
     let isVisible = true;
     let isCoastlineVisible = true;
     const API_BASE = TSRSViz.API_BASE;
+    const HAS_API = window.location.port === '8000' || window.location.port === '5380';
 
     function getDepthColor(depth) {
         if (depth >= 5) return '#EF4444'; // Red — severe
@@ -34,7 +35,7 @@ const TSRSInundation = (() => {
             if (FirebaseConfig.isReady()) {
                 data = await FirebaseConfig.getInundation(waveHeight);
             }
-            if (!data) {
+            if (!data && HAS_API) {
                 try {
                     const resp = await fetch(`${API_BASE}/api/inundation?wave_height=${waveHeight}`);
                     if (resp.ok) data = await resp.json();
@@ -86,7 +87,7 @@ const TSRSInundation = (() => {
             if (FirebaseConfig.isReady()) {
                 data = await FirebaseConfig.getCoastline();
             }
-            if (!data) {
+            if (!data && HAS_API) {
                 try {
                     const resp = await fetch(`${API_BASE}/api/coastline`);
                     if (resp.ok) data = await resp.json();

@@ -8,25 +8,37 @@ const TSRSViz = (() => {
     const API_BASE = getApiBase();
 
     function getApiBase() {
-        if (window.location.port === '8000') return '';
-        return 'http://localhost:8000';
+        const port = window.location.port;
+        // If served directly from the FastAPI backend, use relative paths
+        if (port === '8000' || port === '5380') return '';
+        // Local dev: try the backend
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:5380';
+        }
+        // Production (Vercel etc): no API, rely on local JSON fallback
+        return '';
     }
 
     /**
      * Data loading with fallback chain: Firebase → API → Local JSON
      */
+    // True when served from FastAPI backend
+    const HAS_API = window.location.port === '8000' || window.location.port === '5380';
+
     async function fetchData(firebaseFn, apiPath, localPath) {
         // Try Firebase first
         if (FirebaseConfig.isReady()) {
             const data = await firebaseFn();
             if (data) return data;
         }
-        // Try API
-        try {
-            const resp = await fetch(`${API_BASE}${apiPath}`);
-            if (resp.ok) return await resp.json();
-        } catch (e) { /* fall through */ }
-        // Try local JSON
+        // Try API only if backend is available (skip in Vercel/static)
+        if (HAS_API) {
+            try {
+                const resp = await fetch(`${API_BASE}${apiPath}`);
+                if (resp.ok) return await resp.json();
+            } catch (e) { /* fall through */ }
+        }
+        // Local JSON fallback (always works — data/ is deployed with frontend)
         try {
             const resp = await fetch(localPath);
             if (resp.ok) return await resp.json();

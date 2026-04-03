@@ -19,6 +19,11 @@ const FirebaseConfig = (() => {
     let isInitialized = false;
 
     function init() {
+        // Skip Firebase if config is still placeholder
+        if (firebaseConfig.apiKey.includes('PLACEHOLDER')) {
+            console.log('Firebase: placeholder config detected — using API/local fallback');
+            return;
+        }
         try {
             if (typeof firebase !== 'undefined') {
                 firebase.initializeApp(firebaseConfig);

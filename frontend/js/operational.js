@@ -4,17 +4,75 @@
  */
 const TSRSOps = (() => {
     const API_BASE = TSRSViz.API_BASE;
+    const HAS_API = window.location.port === '8000' || window.location.port === '5380';
 
     async function loadOperational(stationId) {
         const waveHeight = TSRSControls.getWaveHeight();
-        try {
-            const url = `${API_BASE}/api/operational/${stationId}?wave_height=${waveHeight}`;
-            const response = await fetch(url);
-            const data = await response.json();
-            _renderPanel(data);
-        } catch (err) {
-            console.error('Error loading operational data:', err);
+
+        // Try API if backend is running
+        if (HAS_API) {
+            try {
+                const url = `${API_BASE}/api/operational/${stationId}?wave_height=${waveHeight}`;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    _renderPanel(data);
+                    return;
+                }
+            } catch (err) { /* fall through to client-side */ }
         }
+
+        // Client-side operational data generation (for Vercel / static)
+        _renderFromStationData(stationId, waveHeight);
+    }
+
+    function _renderFromStationData(stationId, waveHeight) {
+        // Find station in the loaded GeoJSON layer
+        const layer = TSRSViz.getStationsLayer();
+        if (!layer) return;
+        let props = null;
+        layer.eachLayer(l => {
+            if (l.feature && l.feature.properties.station_id === stationId) {
+                props = l.feature.properties;
+            }
+        });
+        if (!props) return;
+
+        const severity = waveHeight >= 5 ? 'קיצוני' : waveHeight >= 3 ? 'חזק' : waveHeight >= 1.5 ? 'בינוני' : 'נמוך';
+        const evacMode = waveHeight >= 5 ? 'חובה' : waveHeight >= 2 ? 'מומלץ' : 'המלצה';
+        const popAtRisk = Math.round(props.population * Math.min(waveHeight / 10, 0.5));
+
+        const guidelines = [];
+        if (props.tsrs_score >= 60) {
+            guidelines.push(`תחנה בעדיפות ${props.priority} — נדרש גיבוי מיידי של ${props.backup_units} ניידות`);
+        } else {
+            guidelines.push(`תחנה בעדיפות ${props.priority} — כוננות רגילה`);
+        }
+        if (waveHeight >= 3) {
+            guidelines.push(`פינוי אוכלוסייה עד ${Math.round(props.coast_distance_km * 1000 + waveHeight * 200)}מ' מקו החוף`);
+        }
+        guidelines.push(`הפניית אוכלוסייה ל-${props.vertical_shelters} מבני מקלט אנכי באזור`);
+        guidelines.push(`חסימת ${props.evacuation_routes} צירי פינוי ראשיים`);
+        if (props.critical_facilities > 5) {
+            guidelines.push(`תיאום פינוי ${props.critical_facilities} מוסדות קריטיים (בתי ספר, בתי חולים)`);
+        }
+
+        _renderPanel({
+            station_id: stationId,
+            station_name: props.station_name,
+            wave_height: waveHeight,
+            severity: severity,
+            tsrs_score: props.tsrs_score,
+            risk_tier_he: props.risk_tier_he,
+            evacuation: { mode_he: evacMode, estimated_population_at_risk: popAtRisk },
+            resource_allocation: {
+                backup_units_needed: props.backup_units,
+                priority_level: props.priority,
+                critical_facilities_count: props.critical_facilities,
+                vertical_shelters_available: props.vertical_shelters,
+            },
+            guidelines: guidelines,
+        });
     }
 
     function _renderPanel(data) {
