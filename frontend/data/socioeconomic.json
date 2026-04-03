@@ -1,0 +1,1012 @@
+{
+  "אום אל-פחם": {
+    "code": 2710,
+    "cluster": 2,
+    "district": "חיפה"
+  },
+  "אופקים": {
+    "code": 31,
+    "cluster": 3,
+    "district": "הדרום"
+  },
+  "אור יהודה": {
+    "code": 2400,
+    "cluster": 5,
+    "district": "תל אביב"
+  },
+  "אור עקיבא": {
+    "code": 1020,
+    "cluster": 5,
+    "district": "חיפה"
+  },
+  "אילת": {
+    "code": 2600,
+    "cluster": 6,
+    "district": "הדרום"
+  },
+  "אלעד": {
+    "code": 1309,
+    "cluster": 2,
+    "district": "המרכז"
+  },
+  "אריאל": {
+    "code": 3570,
+    "cluster": 6,
+    "district": "אזור יהודה והשומרון"
+  },
+  "אשדוד": {
+    "code": 70,
+    "cluster": 5,
+    "district": "הדרום"
+  },
+  "אשקלון": {
+    "code": 7100,
+    "cluster": 5,
+    "district": "הדרום"
+  },
+  "באקה אל-גרביה": {
+    "code": 6000,
+    "cluster": 4,
+    "district": "חיפה"
+  },
+  "באר יעקב": {
+    "code": 2530,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "באר שבע": {
+    "code": 9000,
+    "cluster": 5,
+    "district": "הדרום"
+  },
+  "בית שאן": {
+    "code": 9200,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "בית שמש": {
+    "code": 2610,
+    "cluster": 2,
+    "district": "ירושלים"
+  },
+  "ביתר עילית": {
+    "code": 3780,
+    "cluster": 1,
+    "district": "אזור יהודה והשומרון"
+  },
+  "בני ברק": {
+    "code": 6100,
+    "cluster": 2,
+    "district": "תל אביב"
+  },
+  "בת ים": {
+    "code": 6200,
+    "cluster": 5,
+    "district": "תל אביב"
+  },
+  "גבעת שמואל": {
+    "code": 681,
+    "cluster": 8,
+    "district": "המרכז"
+  },
+  "גבעתיים": {
+    "code": 6300,
+    "cluster": 9,
+    "district": "תל אביב"
+  },
+  "דימונה": {
+    "code": 2200,
+    "cluster": 5,
+    "district": "הדרום"
+  },
+  "הוד השרון": {
+    "code": 9700,
+    "cluster": 9,
+    "district": "המרכז"
+  },
+  "הרצלייה": {
+    "code": 6400,
+    "cluster": 8,
+    "district": "תל אביב"
+  },
+  "חדרה": {
+    "code": 6500,
+    "cluster": 6,
+    "district": "חיפה"
+  },
+  "חולון": {
+    "code": 6600,
+    "cluster": 7,
+    "district": "תל אביב"
+  },
+  "חיפה": {
+    "code": 4000,
+    "cluster": 7,
+    "district": "חיפה"
+  },
+  "חריש": {
+    "code": 1247,
+    "cluster": 5,
+    "district": "חיפה"
+  },
+  "טבריה": {
+    "code": 6700,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "טייבה": {
+    "code": 2730,
+    "cluster": 3,
+    "district": "המרכז"
+  },
+  "טירה": {
+    "code": 2720,
+    "cluster": 5,
+    "district": "המרכז"
+  },
+  "טירת כרמל": {
+    "code": 2100,
+    "cluster": 5,
+    "district": "חיפה"
+  },
+  "טמרה": {
+    "code": 8900,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "יבנה": {
+    "code": 2660,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "יהוד-מונוסון": {
+    "code": 9400,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "יקנעם עילית": {
+    "code": 240,
+    "cluster": 7,
+    "district": "הצפון"
+  },
+  "ירושלים": {
+    "code": 3000,
+    "cluster": 2,
+    "district": "ירושלים"
+  },
+  "כפר יונה": {
+    "code": 168,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "כפר סבא": {
+    "code": 6900,
+    "cluster": 8,
+    "district": "המרכז"
+  },
+  "כפר קאסם": {
+    "code": 634,
+    "cluster": 3,
+    "district": "המרכז"
+  },
+  "כרמיאל": {
+    "code": 1139,
+    "cluster": 6,
+    "district": "הצפון"
+  },
+  "לוד": {
+    "code": 7000,
+    "cluster": 4,
+    "district": "המרכז"
+  },
+  "מגאר": {
+    "code": 481,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "מגדל העמק": {
+    "code": 874,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "מודיעין-מכבים-רעות": {
+    "code": 1200,
+    "cluster": 9,
+    "district": "המרכז"
+  },
+  "מודיעין עילית": {
+    "code": 3797,
+    "cluster": 1,
+    "district": "אזור יהודה והשומרון"
+  },
+  "מעלה אדומים": {
+    "code": 3616,
+    "cluster": 6,
+    "district": "אזור יהודה והשומרון"
+  },
+  "מעלות-תרשיחא": {
+    "code": 1063,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "נהרייה": {
+    "code": 9100,
+    "cluster": 6,
+    "district": "הצפון"
+  },
+  "נוף הגליל": {
+    "code": 1061,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "נס ציונה": {
+    "code": 7200,
+    "cluster": 8,
+    "district": "המרכז"
+  },
+  "נצרת": {
+    "code": 7300,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "נשר": {
+    "code": 2500,
+    "cluster": 7,
+    "district": "חיפה"
+  },
+  "נתיבות": {
+    "code": 246,
+    "cluster": 3,
+    "district": "הדרום"
+  },
+  "נתניה": {
+    "code": 7400,
+    "cluster": 6,
+    "district": "המרכז"
+  },
+  "סח'נין": {
+    "code": 7500,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "עכו": {
+    "code": 7600,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "עפולה": {
+    "code": 7700,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "עראבה": {
+    "code": 531,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "ערד": {
+    "code": 2560,
+    "cluster": 3,
+    "district": "הדרום"
+  },
+  "פתח תקווה": {
+    "code": 7900,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "צפת": {
+    "code": 8000,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "קלנסווה": {
+    "code": 638,
+    "cluster": 3,
+    "district": "המרכז"
+  },
+  "קריית אונו": {
+    "code": 2620,
+    "cluster": 9,
+    "district": "תל אביב"
+  },
+  "קריית אתא": {
+    "code": 6800,
+    "cluster": 6,
+    "district": "חיפה"
+  },
+  "קריית ביאליק": {
+    "code": 9500,
+    "cluster": 6,
+    "district": "חיפה"
+  },
+  "קריית גת": {
+    "code": 2630,
+    "cluster": 4,
+    "district": "הדרום"
+  },
+  "קריית ים": {
+    "code": 9600,
+    "cluster": 5,
+    "district": "חיפה"
+  },
+  "קריית מוצקין": {
+    "code": 8200,
+    "cluster": 7,
+    "district": "חיפה"
+  },
+  "קריית מלאכי": {
+    "code": 1034,
+    "cluster": 4,
+    "district": "הדרום"
+  },
+  "קריית שמונה": {
+    "code": 2800,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "ראש העין": {
+    "code": 2640,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "ראשון לציון": {
+    "code": 8300,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "רהט": {
+    "code": 1161,
+    "cluster": 1,
+    "district": "הדרום"
+  },
+  "רחובות": {
+    "code": 8400,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "רמלה": {
+    "code": 8500,
+    "cluster": 5,
+    "district": "המרכז"
+  },
+  "רמת גן": {
+    "code": 8600,
+    "cluster": 8,
+    "district": "תל אביב"
+  },
+  "רמת השרון": {
+    "code": 2650,
+    "cluster": 9,
+    "district": "תל אביב"
+  },
+  "רעננה": {
+    "code": 8700,
+    "cluster": 8,
+    "district": "המרכז"
+  },
+  "שדרות": {
+    "code": 1031,
+    "cluster": 5,
+    "district": "הדרום"
+  },
+  "שפרעם": {
+    "code": 8800,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "תל אביב -יפו": {
+    "code": 5000,
+    "cluster": 8,
+    "district": "תל אביב"
+  },
+  "אבו גוש": {
+    "code": 472,
+    "cluster": 3,
+    "district": "ירושלים"
+  },
+  "אבו סנאן": {
+    "code": 473,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "אבן יהודה": {
+    "code": 182,
+    "cluster": 9,
+    "district": "המרכז"
+  },
+  "אורנית": {
+    "code": 3760,
+    "cluster": 8,
+    "district": "אזור יהודה והשומרון"
+  },
+  "אזור": {
+    "code": 565,
+    "cluster": 7,
+    "district": "תל אביב"
+  },
+  "אכסאל": {
+    "code": 478,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "אליכין": {
+    "code": 41,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "אלפי מנשה": {
+    "code": 3750,
+    "cluster": 8,
+    "district": "אזור יהודה והשומרון"
+  },
+  "אלקנה": {
+    "code": 3560,
+    "cluster": 8,
+    "district": "אזור יהודה והשומרון"
+  },
+  "אעבלין": {
+    "code": 529,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "אפרת": {
+    "code": 3650,
+    "cluster": 7,
+    "district": "אזור יהודה והשומרון"
+  },
+  "בועיינה-נוג'ידאת": {
+    "code": 482,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "בוקעאתא": {
+    "code": 4001,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "ביר אל-מכסור": {
+    "code": 998,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "בית אל": {
+    "code": 3574,
+    "cluster": 4,
+    "district": "אזור יהודה והשומרון"
+  },
+  "בית אריה-עופרים": {
+    "code": 3652,
+    "cluster": 7,
+    "district": "אזור יהודה והשומרון"
+  },
+  "בית ג'ן": {
+    "code": 480,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "בית דגן": {
+    "code": 466,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "בני עי\"ש": {
+    "code": 1066,
+    "cluster": 5,
+    "district": "המרכז"
+  },
+  "בנימינה-גבעת עדה": {
+    "code": 9800,
+    "cluster": 8,
+    "district": "חיפה"
+  },
+  "בסמ\"ה": {
+    "code": 1326,
+    "cluster": 2,
+    "district": "חיפה"
+  },
+  "בסמת טבעון": {
+    "code": 944,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "בענה": {
+    "code": 483,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "גבעת זאב": {
+    "code": 3730,
+    "cluster": 5,
+    "district": "אזור יהודה והשומרון"
+  },
+  "ג'דיידה-מכר": {
+    "code": 1292,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "גדרה": {
+    "code": 2550,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "ג'ולס": {
+    "code": 485,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "ג'לג'וליה": {
+    "code": 627,
+    "cluster": 3,
+    "district": "המרכז"
+  },
+  "גן יבנה": {
+    "code": 166,
+    "cluster": 7,
+    "district": "המרכז"
+  },
+  "גני תקווה": {
+    "code": 229,
+    "cluster": 9,
+    "district": "המרכז"
+  },
+  "ג'סר א-זרקא": {
+    "code": 541,
+    "cluster": 2,
+    "district": "חיפה"
+  },
+  "ג'ש (גוש חלב)": {
+    "code": 487,
+    "cluster": 7,
+    "district": "הצפון"
+  },
+  "ג'ת": {
+    "code": 628,
+    "cluster": 5,
+    "district": "חיפה"
+  },
+  "דאלית אל-כרמל": {
+    "code": 494,
+    "cluster": 5,
+    "district": "חיפה"
+  },
+  "דבורייה": {
+    "code": 489,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "דייר אל-אסד": {
+    "code": 490,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "דייר חנא": {
+    "code": 492,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "הר אדר": {
+    "code": 3769,
+    "cluster": 9,
+    "district": "אזור יהודה והשומרון"
+  },
+  "זכרון יעקב": {
+    "code": 9300,
+    "cluster": 8,
+    "district": "חיפה"
+  },
+  "זמר": {
+    "code": 1290,
+    "cluster": 4,
+    "district": "המרכז"
+  },
+  "זרזיר": {
+    "code": 975,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "חורה": {
+    "code": 1303,
+    "cluster": 1,
+    "district": "הדרום"
+  },
+  "חורפיש": {
+    "code": 496,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "חצור הגלילית": {
+    "code": 2034,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "טובא-זנגרייה": {
+    "code": 962,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "טורעאן": {
+    "code": 498,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "יאנוח-ג'ת": {
+    "code": 1295,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "יבנאל": {
+    "code": 46,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "יסוד המעלה": {
+    "code": 29,
+    "cluster": 7,
+    "district": "הצפון"
+  },
+  "יפיע": {
+    "code": 499,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "ירוחם": {
+    "code": 831,
+    "cluster": 4,
+    "district": "הדרום"
+  },
+  "ירכא": {
+    "code": 502,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "כאבול": {
+    "code": 504,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "כאוכב אבו אל-היג'א": {
+    "code": 505,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "כוכב יאיר": {
+    "code": 1224,
+    "cluster": 10,
+    "district": "המרכז"
+  },
+  "כסיפה": {
+    "code": 1059,
+    "cluster": 1,
+    "district": "הדרום"
+  },
+  "כסרא-סמיע": {
+    "code": 1296,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "כעביה-טבאש-חג'אג'רה": {
+    "code": 978,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "כפר ברא": {
+    "code": 633,
+    "cluster": 4,
+    "district": "המרכז"
+  },
+  "כפר ורדים": {
+    "code": 1263,
+    "cluster": 9,
+    "district": "הצפון"
+  },
+  "כפר יאסיף": {
+    "code": 507,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "כפר כמא": {
+    "code": 508,
+    "cluster": 6,
+    "district": "הצפון"
+  },
+  "כפר כנא": {
+    "code": 509,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "כפר מנדא": {
+    "code": 510,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "כפר קרע": {
+    "code": 654,
+    "cluster": 5,
+    "district": "חיפה"
+  },
+  "כפר שמריהו": {
+    "code": 267,
+    "cluster": 10,
+    "district": "תל אביב"
+  },
+  "כפר תבור": {
+    "code": 47,
+    "cluster": 8,
+    "district": "הצפון"
+  },
+  "להבים": {
+    "code": 1271,
+    "cluster": 10,
+    "district": "הדרום"
+  },
+  "לקיה": {
+    "code": 1060,
+    "cluster": 1,
+    "district": "הדרום"
+  },
+  "מבשרת ציון": {
+    "code": 1015,
+    "cluster": 8,
+    "district": "ירושלים"
+  },
+  "מג'ד אל-כרום": {
+    "code": 516,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "מגדל": {
+    "code": 65,
+    "cluster": 6,
+    "district": "הצפון"
+  },
+  "מג'דל שמס": {
+    "code": 4201,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "מזכרת בתיה": {
+    "code": 28,
+    "cluster": 8,
+    "district": "המרכז"
+  },
+  "מזרעה": {
+    "code": 517,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "מטולה": {
+    "code": 43,
+    "cluster": 7,
+    "district": "הצפון"
+  },
+  "מיתר": {
+    "code": 1268,
+    "cluster": 9,
+    "district": "הדרום"
+  },
+  "מסעדה": {
+    "code": 4203,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "מעיליא": {
+    "code": 518,
+    "cluster": 7,
+    "district": "הצפון"
+  },
+  "מעלה אפרים": {
+    "code": 3608,
+    "cluster": 4,
+    "district": "אזור יהודה והשומרון"
+  },
+  "מעלה עירון": {
+    "code": 1327,
+    "cluster": 2,
+    "district": "חיפה"
+  },
+  "מצפה רמון": {
+    "code": 99,
+    "cluster": 3,
+    "district": "הדרום"
+  },
+  "משהד": {
+    "code": 520,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "נחף": {
+    "code": 522,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "סאג'ור": {
+    "code": 525,
+    "cluster": 4,
+    "district": "הצפון"
+  },
+  "סביון": {
+    "code": 587,
+    "cluster": 10,
+    "district": "המרכז"
+  },
+  "ע'ג'ר": {
+    "code": 4501,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "עומר": {
+    "code": 666,
+    "cluster": 10,
+    "district": "הדרום"
+  },
+  "עיילבון": {
+    "code": 530,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "עילוט": {
+    "code": 511,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "עין מאהל": {
+    "code": 532,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "עין קנייא": {
+    "code": 4502,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "עמנואל": {
+    "code": 3660,
+    "cluster": 2,
+    "district": "אזור יהודה והשומרון"
+  },
+  "עספיא": {
+    "code": 534,
+    "cluster": 5,
+    "district": "חיפה"
+  },
+  "ערערה": {
+    "code": 637,
+    "cluster": 3,
+    "district": "חיפה"
+  },
+  "ערערה-בנגב": {
+    "code": 1192,
+    "cluster": 1,
+    "district": "הדרום"
+  },
+  "פוריידיס": {
+    "code": 537,
+    "cluster": 3,
+    "district": "חיפה"
+  },
+  "פסוטה": {
+    "code": 535,
+    "cluster": 6,
+    "district": "הצפון"
+  },
+  "פקיעין (בוקייעה)": {
+    "code": 536,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "פרדס חנה-כרכור": {
+    "code": 7800,
+    "cluster": 7,
+    "district": "חיפה"
+  },
+  "פרדסייה": {
+    "code": 171,
+    "cluster": 9,
+    "district": "המרכז"
+  },
+  "קדומים": {
+    "code": 3557,
+    "cluster": 5,
+    "district": "אזור יהודה והשומרון"
+  },
+  "קדימה-צורן": {
+    "code": 195,
+    "cluster": 8,
+    "district": "המרכז"
+  },
+  "קצרין": {
+    "code": 4100,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "קריית ארבע": {
+    "code": 3611,
+    "cluster": 3,
+    "district": "אזור יהודה והשומרון"
+  },
+  "קריית טבעון": {
+    "code": 2300,
+    "cluster": 8,
+    "district": "חיפה"
+  },
+  "קריית יערים": {
+    "code": 1137,
+    "cluster": 2,
+    "district": "ירושלים"
+  },
+  "קריית עקרון": {
+    "code": 469,
+    "cluster": 6,
+    "district": "המרכז"
+  },
+  "קרני שומרון": {
+    "code": 3640,
+    "cluster": 6,
+    "district": "אזור יהודה והשומרון"
+  },
+  "ראמה": {
+    "code": 543,
+    "cluster": 5,
+    "district": "הצפון"
+  },
+  "ראש פינה": {
+    "code": 26,
+    "cluster": 7,
+    "district": "הצפון"
+  },
+  "ריינה": {
+    "code": 542,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "רכסים": {
+    "code": 922,
+    "cluster": 2,
+    "district": "חיפה"
+  },
+  "רמת ישי": {
+    "code": 122,
+    "cluster": 8,
+    "district": "הצפון"
+  },
+  "שבלי - אום אל-גנם": {
+    "code": 913,
+    "cluster": 3,
+    "district": "הצפון"
+  },
+  "שגב-שלום": {
+    "code": 1286,
+    "cluster": 1,
+    "district": "הדרום"
+  },
+  "שוהם": {
+    "code": 1304,
+    "cluster": 9,
+    "district": "המרכז"
+  },
+  "שלומי": {
+    "code": 812,
+    "cluster": 6,
+    "district": "הצפון"
+  },
+  "שעב": {
+    "code": 538,
+    "cluster": 2,
+    "district": "הצפון"
+  },
+  "שער שומרון": {
+    "code": 3826,
+    "cluster": 0,
+    "district": "אזור יהודה והשומרון"
+  },
+  "תל מונד": {
+    "code": 154,
+    "cluster": 9,
+    "district": "המרכז"
+  },
+  "תל שבע": {
+    "code": 1054,
+    "cluster": 1,
+    "district": "הדרום"
+  }
+}

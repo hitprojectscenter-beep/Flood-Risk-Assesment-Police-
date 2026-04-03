@@ -92,6 +92,38 @@ body {
     color: var(--text-muted);
 }
 
+/* Language Selector */
+.lang-selector {
+    display: flex;
+    gap: 3px;
+    margin-left: 10px;
+}
+
+.lang-btn {
+    background: rgba(148,163,184,0.15);
+    border: 1px solid rgba(148,163,184,0.2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all var(--transition);
+}
+
+.lang-btn:hover {
+    background: rgba(20,184,166,0.2);
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.lang-btn.lang-active {
+    background: var(--accent);
+    color: var(--primary);
+    border-color: var(--accent);
+}
+
 /* ===== Main Container ===== */
 #app-container {
     display: flex;
@@ -619,6 +651,35 @@ body {
     border-radius: 2px;
 }
 #sidebar::-webkit-scrollbar-track { background: transparent; }
+
+/* ===== LTR Overrides (for non-Hebrew languages) ===== */
+[dir="ltr"] #sidebar {
+    border-left: none;
+    border-right: 1px solid var(--border);
+}
+
+[dir="ltr"] .control-select {
+    direction: ltr;
+}
+
+[dir="ltr"] .leaflet-popup-content {
+    direction: ltr;
+    text-align: left;
+}
+
+[dir="ltr"] .tsrs-popup .bar-label-group {
+    text-align: left;
+}
+
+[dir="ltr"] .op-guidelines li {
+    border-right: none;
+    border-left: 3px solid var(--warning);
+    border-radius: 6px 0 0 6px;
+}
+
+[dir="ltr"] .summary-stat {
+    flex-direction: row;
+}
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {

@@ -112,6 +112,24 @@ const TSRSViz = (() => {
             }
             if (!data) { console.warn('No station data available'); return null; }
 
+            // Filter: only show cities that exist in CBS socioeconomic data
+            const cbsData = window._cbsSocioData;
+            if (cbsData && data.features) {
+                data = {
+                    type: 'FeatureCollection',
+                    features: data.features.filter(f => {
+                        const name = f.properties.station_name;
+                        if (cbsData[name]) return true;
+                        // Try partial match
+                        for (const cbsName of Object.keys(cbsData)) {
+                            if (name.includes(cbsName) || cbsName.includes(name)) return true;
+                        }
+                        return false;
+                    })
+                };
+                console.log(`Filtered to ${data.features.length} cities with CBS data`);
+            }
+
             // Filter by district if needed
             if (district !== 'all' && data.features) {
                 const districtMap = {
@@ -266,22 +284,55 @@ const TSRSViz = (() => {
 
     // CBS Israel district-level averages (2022)
     const CBS_DISTRICT_DATA = {
-        'צפון':     { age_0_14: 28, age_15_24: 15, age_25_44: 25, age_45_64: 19, age_65_plus: 13, cluster: 4, income: 9800, car: 58 },
-        'חיפה':     { age_0_14: 22, age_15_24: 14, age_25_44: 26, age_45_64: 21, age_65_plus: 17, cluster: 6, income: 12500, car: 68 },
-        'מרכז':     { age_0_14: 23, age_15_24: 13, age_25_44: 28, age_45_64: 22, age_65_plus: 14, cluster: 7, income: 15200, car: 72 },
-        'תל-אביב':  { age_0_14: 17, age_15_24: 12, age_25_44: 35, age_45_64: 20, age_65_plus: 16, cluster: 8, income: 17800, car: 55 },
-        'ירושלים':  { age_0_14: 30, age_15_24: 16, age_25_44: 27, age_45_64: 15, age_65_plus: 12, cluster: 4, income: 8900, car: 45 },
-        'דרום':     { age_0_14: 29, age_15_24: 15, age_25_44: 26, age_45_64: 18, age_65_plus: 12, cluster: 4, income: 9200, car: 62 },
-        'אחר':     { age_0_14: 25, age_15_24: 14, age_25_44: 27, age_45_64: 20, age_65_plus: 14, cluster: 5, income: 11000, car: 60 },
+        'צפון':     { age_0_14: 28, age_15_24: 15, age_25_44: 25, age_45_64: 19, age_65_plus: 13, income: 9800, car: 58 },
+        'חיפה':     { age_0_14: 22, age_15_24: 14, age_25_44: 26, age_45_64: 21, age_65_plus: 17, income: 12500, car: 68 },
+        'מרכז':     { age_0_14: 23, age_15_24: 13, age_25_44: 28, age_45_64: 22, age_65_plus: 14, income: 15200, car: 72 },
+        'תל-אביב':  { age_0_14: 17, age_15_24: 12, age_25_44: 35, age_45_64: 20, age_65_plus: 16, income: 17800, car: 55 },
+        'ירושלים':  { age_0_14: 30, age_15_24: 16, age_25_44: 27, age_45_64: 15, age_65_plus: 12, income: 8900, car: 45 },
+        'דרום':     { age_0_14: 29, age_15_24: 15, age_25_44: 26, age_45_64: 18, age_65_plus: 12, income: 9200, car: 62 },
+        'הדרום':    { age_0_14: 29, age_15_24: 15, age_25_44: 26, age_45_64: 18, age_65_plus: 12, income: 9200, car: 62 },
+        'המרכז':    { age_0_14: 23, age_15_24: 13, age_25_44: 28, age_45_64: 22, age_65_plus: 14, income: 15200, car: 72 },
+        'הצפון':    { age_0_14: 28, age_15_24: 15, age_25_44: 25, age_45_64: 19, age_65_plus: 13, income: 9800, car: 58 },
+        'תל אביב':  { age_0_14: 17, age_15_24: 12, age_25_44: 35, age_45_64: 20, age_65_plus: 16, income: 17800, car: 55 },
+        'אחר':     { age_0_14: 25, age_15_24: 14, age_25_44: 27, age_45_64: 20, age_65_plus: 14, income: 11000, car: 60 },
+    };
+
+    // Income approximation by socioeconomic cluster (CBS correlations)
+    const INCOME_BY_CLUSTER = {
+        1: 5500, 2: 6800, 3: 8200, 4: 9500, 5: 11000,
+        6: 13000, 7: 15500, 8: 18500, 9: 22000, 10: 27000,
+    };
+    const CAR_BY_CLUSTER = {
+        1: 25, 2: 35, 3: 42, 4: 50, 5: 58, 6: 65, 7: 72, 8: 76, 9: 80, 10: 85,
     };
 
     function _generateDemographics(props) {
-        // Use CBS district averages with per-city variation based on name hash
         const seed = props.station_id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
         const vary = (base, range) => Math.max(1, Math.round(base + ((seed * 7 + base) % (range * 2 + 1)) - range));
         const pop = props.population || 50000;
         const district = props.district || 'אחר';
         const cbs = CBS_DISTRICT_DATA[district] || CBS_DISTRICT_DATA['אחר'];
+
+        // Try to get REAL socioeconomic cluster from CBS data
+        let realCluster = 0;
+        const cbsData = window._cbsSocioData;
+        if (cbsData) {
+            // Try exact name match, then partial
+            const cityName = props.station_name;
+            if (cbsData[cityName]) {
+                realCluster = cbsData[cityName].cluster;
+            } else {
+                // Try matching without dashes/spaces
+                for (const [name, data] of Object.entries(cbsData)) {
+                    if (cityName.includes(name) || name.includes(cityName)) {
+                        realCluster = data.cluster;
+                        break;
+                    }
+                }
+            }
+        }
+
+        const cluster = realCluster || vary(5, 3);
 
         const ages = {
             age_0_14: vary(cbs.age_0_14, 4),
@@ -290,16 +341,15 @@ const TSRSViz = (() => {
             age_45_64: vary(cbs.age_45_64, 3),
             age_65_plus: vary(cbs.age_65_plus, 4),
         };
-        // Normalize to 100%
         const total = Object.values(ages).reduce((a, b) => a + b, 0);
         Object.keys(ages).forEach(k => ages[k] = Math.round(ages[k] / total * 100));
 
         return {
             population: pop,
             ...ages,
-            socioeconomic_cluster: vary(cbs.cluster, 2),
-            avg_income: vary(cbs.income, 2000),
-            car_ownership: vary(cbs.car, 8),
+            socioeconomic_cluster: cluster,
+            avg_income: INCOME_BY_CLUSTER[cluster] || 11000,
+            car_ownership: CAR_BY_CLUSTER[cluster] || 60,
         };
     }
 

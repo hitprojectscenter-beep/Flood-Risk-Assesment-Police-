@@ -21,11 +21,18 @@
         <div class="header-right">
             <div class="logo-icon">🛡️</div>
             <div class="header-titles">
-                <h1>TSRS — מערכת הערכת סיכון צונאמי</h1>
-                <span class="header-subtitle">Tsunami Station Risk Score — משטרת ישראל</span>
+                <h1 id="app-title">TSRS — מערכת הערכת סיכון צונאמי</h1>
+                <span id="app-subtitle" class="header-subtitle">Tsunami Station Risk Score — משטרת ישראל</span>
             </div>
         </div>
         <div class="header-left">
+            <div class="lang-selector">
+                <button class="lang-btn lang-active" data-lang="he" onclick="I18n.setLanguage('he')">עב</button>
+                <button class="lang-btn" data-lang="en" onclick="I18n.setLanguage('en')">EN</button>
+                <button class="lang-btn" data-lang="ru" onclick="I18n.setLanguage('ru')">РУ</button>
+                <button class="lang-btn" data-lang="fr" onclick="I18n.setLanguage('fr')">FR</button>
+                <button class="lang-btn" data-lang="es" onclick="I18n.setLanguage('es')">ES</button>
+            </div>
             <span id="current-datetime" class="header-datetime"></span>
         </div>
     </header>
@@ -36,7 +43,7 @@
         <aside id="sidebar">
             <!-- District Selector -->
             <div class="sidebar-section">
-                <h3 class="section-title">🏛️ בחירת נפה</h3>
+                <h3 class="section-title" id="section-district">🏛️ בחירת נפה</h3>
                 <select id="district-select" class="control-select">
                     <option value="all">כל הארץ</option>
                     <option value="north">צפון</option>
@@ -49,7 +56,7 @@
 
             <!-- Wave Height Slider -->
             <div class="sidebar-section">
-                <h3 class="section-title">🌊 גובה גל</h3>
+                <h3 class="section-title" id="section-wave">🌊 גובה גל</h3>
                 <div class="slider-container">
                     <input type="range" id="wave-slider" min="0.5" max="10" step="0.5" value="2.0">
                     <div class="slider-labels">
@@ -63,56 +70,56 @@
 
             <!-- Layer Controls -->
             <div class="sidebar-section">
-                <h3 class="section-title">🗺️ שכבות מפה</h3>
+                <h3 class="section-title" id="section-layers">🗺️ שכבות מפה</h3>
                 <div class="layer-toggles">
                     <label class="toggle-label">
-                        <input type="checkbox" id="layer-stations" checked> 🏙️ ערים
+                        <input type="checkbox" id="layer-stations" checked> <span id="label-text-stations">🏙️ ערים</span>
                     </label>
                     <label class="toggle-label">
-                        <input type="checkbox" id="layer-inundation" checked> 🌊 אזור הצפה
+                        <input type="checkbox" id="layer-inundation" checked> <span id="label-text-inundation">🌊 אזור הצפה</span>
                     </label>
                     <label class="toggle-label layer-disabled" id="label-police-osm">
-                        <input type="checkbox" id="layer-police-osm" disabled> 🛡️ תחנות משטרה
+                        <input type="checkbox" id="layer-police-osm" disabled> <span id="label-text-police">🛡️ תחנות משטרה</span>
                         <span class="zoom-hint" id="police-zoom-hint">(זום 12+ נדרש)</span>
                     </label>
                     <label class="toggle-label layer-disabled" id="label-roads">
-                        <input type="checkbox" id="layer-roads" disabled> 🛣️ כבישים
+                        <input type="checkbox" id="layer-roads" disabled> <span id="label-text-roads">🛣️ כבישים</span>
                         <span class="zoom-hint" id="roads-zoom-hint">(זום 13+ נדרש)</span>
                     </label>
                     <label class="toggle-label layer-disabled" id="label-buildings">
-                        <input type="checkbox" id="layer-buildings" disabled> 🏗️ מבנים
+                        <input type="checkbox" id="layer-buildings" disabled> <span id="label-text-buildings">🏗️ מבנים</span>
                         <span class="zoom-hint" id="buildings-zoom-hint">(זום 15+ נדרש)</span>
                     </label>
                     <label class="toggle-label">
-                        <input type="checkbox" id="layer-hillshade"> ⛰️ תבליט
+                        <input type="checkbox" id="layer-hillshade"> <span id="label-text-hillshade">⛰️ תבליט</span>
                     </label>
                 </div>
             </div>
 
             <!-- Legend -->
             <div class="sidebar-section">
-                <h3 class="section-title">📊 מקרא TSRS</h3>
+                <h3 class="section-title" id="section-legend">📊 מקרא TSRS</h3>
                 <div class="legend">
-                    <div class="legend-item"><span class="legend-color" style="background:#EF4444"></span> קריטי (80-100)</div>
-                    <div class="legend-item"><span class="legend-color" style="background:#F97316"></span> גבוה (60-80)</div>
-                    <div class="legend-item"><span class="legend-color" style="background:#EAB308"></span> בינוני (40-60)</div>
-                    <div class="legend-item"><span class="legend-color" style="background:#22C55E"></span> נמוך (20-40)</div>
-                    <div class="legend-item"><span class="legend-color" style="background:#3B82F6"></span> מינימלי (0-20)</div>
+                    <div class="legend-item"><span class="legend-color" style="background:#EF4444"></span> <span id="legend-critical">קריטי (80-100)</span></div>
+                    <div class="legend-item"><span class="legend-color" style="background:#F97316"></span> <span id="legend-high">גבוה (60-80)</span></div>
+                    <div class="legend-item"><span class="legend-color" style="background:#EAB308"></span> <span id="legend-medium">בינוני (40-60)</span></div>
+                    <div class="legend-item"><span class="legend-color" style="background:#22C55E"></span> <span id="legend-low">נמוך (20-40)</span></div>
+                    <div class="legend-item"><span class="legend-color" style="background:#3B82F6"></span> <span id="legend-minimal">מינימלי (0-20)</span></div>
                 </div>
                 <div class="legend" style="margin-top:10px">
-                    <h4 style="margin-bottom:6px; font-size:12px; color:var(--text-dim, #64748B)">מפת חום — הצפה</h4>
+                    <h4 id="legend-heatmap-title" style="margin-bottom:6px; font-size:12px; color:var(--text-dim, #64748B)">מפת חום — הצפה</h4>
                     <div style="height:14px; border-radius:4px; background:linear-gradient(to left, #FF0000, #FFA500, #FFFF00, #00FF80, #00BFFF, #0000FF); margin-bottom:4px; border:1px solid rgba(255,255,255,0.1)"></div>
                     <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim, #64748B)">
-                        <span>חמור</span>
-                        <span>בינוני</span>
-                        <span>קל</span>
+                        <span id="legend-severe">חמור</span>
+                        <span id="legend-medium-flood">בינוני</span>
+                        <span id="legend-light">קל</span>
                     </div>
                 </div>
                 <div class="legend" style="margin-top:10px">
-                    <h4 style="margin-bottom:6px; font-size:12px; color:var(--text-dim, #64748B)">מבנים (לפי עומק הצפה)</h4>
-                    <div class="legend-item"><span class="legend-color" style="background:#EF4444"></span> מתחת לעומק הצפה</div>
-                    <div class="legend-item"><span class="legend-color" style="background:#10B981"></span> מעל עומק הצפה</div>
-                    <div class="legend-item"><span class="legend-color" style="background:#3B82F6"></span> מקלט פוטנציאלי (4+ קומות)</div>
+                    <h4 id="legend-buildings-title" style="margin-bottom:6px; font-size:12px; color:var(--text-dim, #64748B)">מבנים (לפי עומק הצפה)</h4>
+                    <div class="legend-item"><span class="legend-color" style="background:#EF4444"></span> <span id="legend-below">מתחת לעומק הצפה</span></div>
+                    <div class="legend-item"><span class="legend-color" style="background:#10B981"></span> <span id="legend-above">מעל עומק הצפה</span></div>
+                    <div class="legend-item"><span class="legend-color" style="background:#3B82F6"></span> <span id="legend-shelter">מקלט פוטנציאלי (4+ קומות)</span></div>
                 </div>
             </div>
 
@@ -152,6 +159,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <!-- App JS Modules -->
+    <script src="js/i18n.js"></script>
     <script src="js/firebase-config.js"></script>
     <script src="js/map.js"></script>
     <script src="js/tsrs.js"></script>

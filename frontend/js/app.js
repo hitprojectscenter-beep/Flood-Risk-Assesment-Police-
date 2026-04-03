@@ -1,28 +1,38 @@
 /**
  * TSRS Application — Main Controller
- * Initializes all modules: Firebase → Map → Overlays → Controls → Data
+ * Init order: I18n → Firebase → Map → Overlays → Controls → Data
  */
 (async function() {
     'use strict';
 
-    // 1. Initialize Firebase (optional — falls back to API)
+    // 1. Initialize i18n (language system)
+    if (typeof I18n !== 'undefined') I18n.init();
+
+    // 2. Initialize Firebase (optional)
     FirebaseConfig.init();
 
-    // 2. Initialize map (Leaflet + GOVMAP + Hillshade)
+    // 3. Initialize map
     const map = TSRSMap.init();
 
-    // 3. Initialize OSM overlays FIRST (sets _map, creates panes, attaches zoom listeners)
+    // 4. Initialize OSM overlays (must be before controls)
     if (typeof TSRSOverlays !== 'undefined') {
         TSRSOverlays.init(map);
     }
 
-    // 4. Initialize controls (district, wave slider, layer toggles)
-    // Must come AFTER TSRSOverlays.init so _map is set when toggle handlers fire
+    // 5. Initialize controls
     TSRSControls.init(map);
 
-    // 5. Load initial data layers
+    // 6. Load socioeconomic data from CBS
     try {
-        // Coastline removed (data was inaccurate)
+        const resp = await fetch('data/socioeconomic.json');
+        if (resp.ok) {
+            window._cbsSocioData = await resp.json();
+            console.log(`CBS socioeconomic data loaded: ${Object.keys(window._cbsSocioData).length} cities`);
+        }
+    } catch(e) { console.warn('Could not load CBS data:', e); }
+
+    // 7. Load initial data layers
+    try {
         await TSRSViz.loadStations(map, 'all');
         await TSRSInundation.loadInundation(map, 2.0);
 
