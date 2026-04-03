@@ -107,8 +107,30 @@
 | backend/populate_firebase.py | Firebase data population |
 | vercel.json | Vercel deployment config |
 
+### Phase 7: Bug Fixes (5 critical)
+1. **Init order**: TSRSOverlays.init() BEFORE TSRSControls.init() — roads/buildings couldn't load
+2. **Syntax error**: Extra closing brace in osm-overlays.js onEachFeature — broke entire module
+3. **Demographic profiling**: Store lastClickedProps, use for showDemographicProfile
+4. **Popup close**: Added `popupclose` handler — sidebar + operational panel auto-hide
+5. **Data loading**: cities.json loaded FIRST (before API fallback) — real boundaries preferred
+
+### Phase 8: Heatmap Inundation Visualization
+- Added **Leaflet.heat** library (CDN: leaflet-heat.js)
+- Replaced solid polygon fills with dynamic **heatmap layer**:
+  - Gradient: blue(0) → skyblue(0.2) → green(0.4) → yellow(0.55) → orange(0.7) → red(1.0)
+  - Point generation from polygon edges, centroids, and interior grid
+  - Inland gradient factor: intensity decreases further from coast
+  - Radius scales with wave height: 18px (≤3m) → 25px (3-5m) → 30px (5-7m) → 35px (7m+)
+- Kept dashed blue polygon outlines as context layer
+- Updated legend with gradient bar ("מפת חום — הצפה")
+- Verified: heatmap dynamically responds to wave slider (tested 2.0m → 7.0m)
+
 ## Git History
 1. `Initial commit` — Full app (25 files)
 2. `Add Vercel deployment config` — vercel.json + production fallback
 3. `Fix OSM overlay layers` — Overpass API roads/buildings
-4. `Major redesign` — (pending commit) 8 improvements
+4. `Major redesign` — Dark glassmorphism, TSRS explanations, hillshade
+5. `Add real municipal boundaries` — 11 cities from OSM
+6. `Add police icons, building symbology, demographic profiling`
+7. `Fix 5 critical bugs` — Init order, syntax, demographics, popup close
+8. `Add heatmap inundation visualization` — Leaflet.heat dynamic heatmap

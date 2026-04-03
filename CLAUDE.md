@@ -57,12 +57,29 @@ TSRS = H × 0.35 + V × 0.30 + O × 0.20 + R⁻¹ × 0.10 + I⁻¹ × 0.05
 User feedback triggered 8+ improvements:
 1. **TSRS explanations**: Added 3-word descriptions per category + verbal overall score
 2. **Inundation fix**: Fixed direction (now always inland), added Haifa bay detail, max depth explanation
-3. **Real city boundaries**: Overpass API script to fetch real municipal polygons for ~19 coastal cities
+3. **Real city boundaries**: Overpass API script — 11 real municipal polygons from OSM
 4. **Hillshade**: ESRI World Hillshade (free, no token) as overlay + default base
 5. **Modern design**: Dark glassmorphism theme (Rubik font, teal accent, frosted glass sidebar)
-6. **Police station icons**: At zoom 15+ show Israel Police icon markers (planned)
-7. **Building symbology**: Red (below flood) / Green (above flood) / Blue (shelter) (planned)
-8. **Geographic profiling**: Population, age distribution bar chart, socioeconomic cluster on city click (planned)
+6. **Police station icons**: Israel Police shield SVG at zoom 15+
+7. **Building symbology**: Red (below flood) / Green (above flood) / Blue (shelter potential)
+8. **Geographic profiling**: Age distribution bar chart, socioeconomic cluster, income, car ownership
+
+### Session 1 — Bug Fixes
+Fixed 5 critical bugs:
+1. Init order: TSRSOverlays.init() before TSRSControls.init() (prevented roads/buildings loading)
+2. Syntax error in osm-overlays.js (extra brace in onEachFeature)
+3. Demographic profiling: use stored lastClickedProps instead of re-searching layer
+4. Popup close handler: sidebar summary + operational panel auto-close
+5. Data loading: cities.json loaded first, before API fallback
+
+### Session 1 — Heatmap Visualization
+Replaced static polygon inundation layer with dynamic heatmap (Leaflet.heat):
+- Gradient: blue → green → yellow → orange → red (depth intensity)
+- Radius scales with wave height (18px at 2m → 35px at 7m+)
+- Points generated from polygon edges, centroids, and interior grid
+- Inland gradient factor (intensity decreases further from coast)
+- Dashed blue polygon outlines remain as context layer
+- Legend updated with gradient bar
 
 ## Project Structure
 ```
