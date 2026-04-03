@@ -66,23 +66,6 @@ const TSRSViz = (() => {
         return icons[tier] || '⚪';
     }
 
-    // Police station icon (Israel Police shield SVG as data URI)
-    const POLICE_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="40" height="48">
-        <path d="M20 2 L36 14 L36 32 L20 46 L4 32 L4 14 Z" fill="%230F172A" stroke="%2314B8A6" stroke-width="2.5"/>
-        <text x="20" y="22" text-anchor="middle" fill="%2314B8A6" font-size="10" font-weight="bold" font-family="Arial">IL</text>
-        <text x="20" y="34" text-anchor="middle" fill="white" font-size="8" font-weight="bold" font-family="Arial">POLICE</text>
-    </svg>`;
-
-    const policeIcon = L.icon({
-        iconUrl: 'data:image/svg+xml,' + encodeURIComponent(POLICE_ICON_SVG.replace(/%23/g, '#')),
-        iconSize: [32, 38],
-        iconAnchor: [16, 38],
-        popupAnchor: [0, -38],
-    });
-
-    let policeMarkersLayer = null;
-    const POLICE_ZOOM_MIN = 15;
-
     function stationStyle(feature) {
         const score = feature.properties.tsrs_score;
         return {
@@ -102,38 +85,7 @@ const TSRSViz = (() => {
         };
     }
 
-    function _setupPoliceIcons(map, data) {
-        // Create police icon markers for zoom 15+
-        policeMarkersLayer = L.layerGroup();
-        const features = data.features || [];
-        features.forEach(f => {
-            const props = f.properties;
-            // Get centroid of the geometry
-            const bounds = L.geoJSON(f).getBounds();
-            const center = bounds.getCenter();
-            const marker = L.marker(center, { icon: policeIcon });
-            marker.bindTooltip(`<b>🛡️ ${props.station_name}</b><br>TSRS: ${props.tsrs_score}`, { direction: 'top' });
-            marker.on('click', () => {
-                const popupHTML = _buildPopupHTML(props);
-                marker.bindPopup(popupHTML, { maxWidth: 340, className: 'tsrs-popup-wrapper' }).openPopup();
-                _updateSidebarSummary(props);
-                if (typeof TSRSOps !== 'undefined') TSRSOps.loadOperational(props.station_id);
-            });
-            policeMarkersLayer.addLayer(marker);
-        });
-
-        // Zoom-dependent visibility
-        function updatePoliceVisibility() {
-            const zoom = map.getZoom();
-            if (zoom >= POLICE_ZOOM_MIN) {
-                if (!map.hasLayer(policeMarkersLayer)) map.addLayer(policeMarkersLayer);
-            } else {
-                if (map.hasLayer(policeMarkersLayer)) map.removeLayer(policeMarkersLayer);
-            }
-        }
-        map.on('zoomend', updatePoliceVisibility);
-        updatePoliceVisibility();
-    }
+    // Police icons now handled by osm-overlays.js (real OSM data)
 
     async function loadStations(map, district = 'all') {
         try {
@@ -202,10 +154,6 @@ const TSRSViz = (() => {
             });
 
             stationsLayer.addTo(map);
-
-            // Setup police station icons (visible at zoom 15+)
-            _setupPoliceIcons(map, data);
-
             return stationsLayer;
         } catch (err) {
             console.error('Error loading stations:', err);
@@ -316,22 +264,42 @@ const TSRSViz = (() => {
 
     // ========== Demographic Profiling ==========
 
+    // CBS Israel district-level averages (2022)
+    const CBS_DISTRICT_DATA = {
+        'צפון':     { age_0_14: 28, age_15_24: 15, age_25_44: 25, age_45_64: 19, age_65_plus: 13, cluster: 4, income: 9800, car: 58 },
+        'חיפה':     { age_0_14: 22, age_15_24: 14, age_25_44: 26, age_45_64: 21, age_65_plus: 17, cluster: 6, income: 12500, car: 68 },
+        'מרכז':     { age_0_14: 23, age_15_24: 13, age_25_44: 28, age_45_64: 22, age_65_plus: 14, cluster: 7, income: 15200, car: 72 },
+        'תל-אביב':  { age_0_14: 17, age_15_24: 12, age_25_44: 35, age_45_64: 20, age_65_plus: 16, cluster: 8, income: 17800, car: 55 },
+        'ירושלים':  { age_0_14: 30, age_15_24: 16, age_25_44: 27, age_45_64: 15, age_65_plus: 12, cluster: 4, income: 8900, car: 45 },
+        'דרום':     { age_0_14: 29, age_15_24: 15, age_25_44: 26, age_45_64: 18, age_65_plus: 12, cluster: 4, income: 9200, car: 62 },
+        'אחר':     { age_0_14: 25, age_15_24: 14, age_25_44: 27, age_45_64: 20, age_65_plus: 14, cluster: 5, income: 11000, car: 60 },
+    };
+
     function _generateDemographics(props) {
-        // Generate deterministic demographics based on station_id hash
+        // Use CBS district averages with per-city variation based on name hash
         const seed = props.station_id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-        const r = (min, max) => min + ((seed * 7 + min * 13) % (max - min));
+        const vary = (base, range) => Math.max(1, Math.round(base + ((seed * 7 + base) % (range * 2 + 1)) - range));
         const pop = props.population || 50000;
+        const district = props.district || 'אחר';
+        const cbs = CBS_DISTRICT_DATA[district] || CBS_DISTRICT_DATA['אחר'];
+
+        const ages = {
+            age_0_14: vary(cbs.age_0_14, 4),
+            age_15_24: vary(cbs.age_15_24, 3),
+            age_25_44: vary(cbs.age_25_44, 4),
+            age_45_64: vary(cbs.age_45_64, 3),
+            age_65_plus: vary(cbs.age_65_plus, 4),
+        };
+        // Normalize to 100%
+        const total = Object.values(ages).reduce((a, b) => a + b, 0);
+        Object.keys(ages).forEach(k => ages[k] = Math.round(ages[k] / total * 100));
 
         return {
             population: pop,
-            age_0_14: r(12, 28),
-            age_15_24: r(10, 18),
-            age_25_44: r(22, 35),
-            age_45_64: r(18, 28),
-            age_65_plus: r(8, 22),
-            socioeconomic_cluster: r(3, 9),
-            avg_income: r(6000, 18000),
-            car_ownership: r(45, 85),
+            ...ages,
+            socioeconomic_cluster: vary(cbs.cluster, 2),
+            avg_income: vary(cbs.income, 2000),
+            car_ownership: vary(cbs.car, 8),
         };
     }
 

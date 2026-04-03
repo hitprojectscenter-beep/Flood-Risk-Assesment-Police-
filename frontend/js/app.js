@@ -22,7 +22,7 @@
 
     // 5. Load initial data layers
     try {
-        await TSRSInundation.loadCoastline(map);
+        // Coastline removed (data was inaccurate)
         await TSRSViz.loadStations(map, 'all');
         await TSRSInundation.loadInundation(map, 2.0);
 

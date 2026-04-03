@@ -66,24 +66,25 @@
                 <h3 class="section-title">🗺️ שכבות מפה</h3>
                 <div class="layer-toggles">
                     <label class="toggle-label">
-                        <input type="checkbox" id="layer-stations" checked> תחנות משטרה
+                        <input type="checkbox" id="layer-stations" checked> 🏙️ ערים
                     </label>
                     <label class="toggle-label">
-                        <input type="checkbox" id="layer-inundation" checked> אזור הצפה
+                        <input type="checkbox" id="layer-inundation" checked> 🌊 אזור הצפה
                     </label>
-                    <label class="toggle-label">
-                        <input type="checkbox" id="layer-coastline" checked> קו חוף
+                    <label class="toggle-label layer-disabled" id="label-police-osm">
+                        <input type="checkbox" id="layer-police-osm" disabled> 🛡️ תחנות משטרה
+                        <span class="zoom-hint" id="police-zoom-hint">(זום 12+ נדרש)</span>
                     </label>
                     <label class="toggle-label layer-disabled" id="label-roads">
-                        <input type="checkbox" id="layer-roads" disabled> כבישים (OSM)
+                        <input type="checkbox" id="layer-roads" disabled> 🛣️ כבישים
                         <span class="zoom-hint" id="roads-zoom-hint">(זום 13+ נדרש)</span>
                     </label>
                     <label class="toggle-label layer-disabled" id="label-buildings">
-                        <input type="checkbox" id="layer-buildings" disabled> מבנים (OSM)
+                        <input type="checkbox" id="layer-buildings" disabled> 🏗️ מבנים
                         <span class="zoom-hint" id="buildings-zoom-hint">(זום 15+ נדרש)</span>
                     </label>
                     <label class="toggle-label">
-                        <input type="checkbox" id="layer-hillshade"> תבליט (Hillshade)
+                        <input type="checkbox" id="layer-hillshade"> ⛰️ תבליט
                     </label>
                 </div>
             </div>

@@ -75,10 +75,10 @@ const TSRSControls = (() => {
                     TSRSInundation.setVisible(map, checked);
                 }
             },
-            'layer-coastline': () => {
-                if (typeof TSRSInundation !== 'undefined') {
-                    const checked = document.getElementById('layer-coastline').checked;
-                    TSRSInundation.setCoastlineVisible(map, checked);
+            'layer-police-osm': () => {
+                if (typeof TSRSOverlays !== 'undefined') {
+                    const checked = document.getElementById('layer-police-osm').checked;
+                    TSRSOverlays.setPoliceVisible(map, checked);
                 }
             },
             'layer-roads': () => {
