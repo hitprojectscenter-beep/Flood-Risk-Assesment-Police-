@@ -10,7 +10,7 @@
 
     <!-- Google Fonts - Hebrew -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- App CSS -->
     <link rel="stylesheet" href="css/style.css">
@@ -82,6 +82,9 @@
                         <input type="checkbox" id="layer-buildings" disabled> מבנים (OSM)
                         <span class="zoom-hint" id="buildings-zoom-hint">(זום 15+ נדרש)</span>
                     </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="layer-hillshade"> תבליט (Hillshade)
+                    </label>
                 </div>
             </div>
 
@@ -96,7 +99,7 @@
                     <div class="legend-item"><span class="legend-color" style="background:#3B82F6"></span> מינימלי (0-20)</div>
                 </div>
                 <div class="legend" style="margin-top:10px">
-                    <h4 style="margin-bottom:6px; font-size:13px; color:#666">הצפה</h4>
+                    <h4 style="margin-bottom:6px; font-size:12px; color:var(--text-dim, #64748B)">הצפה (עומק מירבי)</h4>
                     <div class="legend-item"><span class="legend-color" style="background:rgba(234,179,8,0.6)"></span> 0.5–2 מ' (קל)</div>
                     <div class="legend-item"><span class="legend-color" style="background:rgba(249,115,22,0.6)"></span> 2–5 מ' (בינוני)</div>
                     <div class="legend-item"><span class="legend-color" style="background:rgba(239,68,68,0.6)"></span> 5+ מ' (חמור)</div>

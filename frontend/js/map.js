@@ -1,5 +1,5 @@
 /**
- * TSRS Map Module — Leaflet + GOVMAP WMS Integration
+ * TSRS Map Module — Leaflet + GOVMAP WMS + Hillshade Integration
  * Manages base layers, overlays, and map initialization.
  */
 const TSRSMap = (() => {
@@ -7,9 +7,8 @@ const TSRSMap = (() => {
     let baseLayers = {};
     let overlayLayers = {};
 
-    // Israel center coordinates
     const ISRAEL_CENTER = [31.5, 34.8];
-    const ISRAEL_BOUNDS = [[29.5, 34.0], [33.3, 35.9]];
+    const ISRAEL_BOUNDS = [[29.0, 33.5], [33.5, 36.0]];
     const COAST_CENTER = [32.0, 34.78];
 
     function init() {
@@ -22,10 +21,7 @@ const TSRSMap = (() => {
             maxBounds: ISRAEL_BOUNDS,
         });
 
-        // Zoom control on the left (since sidebar is right in RTL)
         L.control.zoom({ position: 'topleft' }).addTo(map);
-
-        // Scale bar
         L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
 
         _addBaseLayers();
@@ -35,41 +31,25 @@ const TSRSMap = (() => {
     }
 
     function _addBaseLayers() {
-        // GOVMAP WMS — Open Data layers
-        const govmapWMS = L.tileLayer.wms('https://open.govmap.gov.il/geoserver/opendata/wms', {
-            layers: 'opendata:REGIONAL_COUNCILS',
-            format: 'image/png',
-            transparent: true,
-            attribution: '© GOVMAP — ממשל זמין',
-            maxZoom: 18,
-        });
+        // === Base Map Tiles ===
 
-        // GOVMAP Orthophoto tiles
-        const govmapOrtho = L.tileLayer(
-            'https://cdn.govmap.gov.il/IsraelOrthPhoto/{z}/{x}/{y}.png', {
-                attribution: '© GOVMAP תצלומי אוויר',
-                maxZoom: 18,
-                errorTileUrl: '',
-            }
-        );
-
-        // OpenStreetMap — primary reliable base
+        // OpenStreetMap
         const osmStandard = L.tileLayer(
             'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 maxZoom: 19,
             }
         );
 
-        // CartoDB light — clean background for data overlays
-        const cartoLight = L.tileLayer(
-            'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        // CartoDB Voyager (modern, clean)
+        const cartoVoyager = L.tileLayer(
+            'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: '© <a href="https://carto.com/">CARTO</a>',
                 maxZoom: 19,
             }
         );
 
-        // CartoDB dark
+        // CartoDB Dark Matter
         const cartoDark = L.tileLayer(
             'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '© <a href="https://carto.com/">CARTO</a>',
@@ -77,27 +57,73 @@ const TSRSMap = (() => {
             }
         );
 
+        // ESRI World Imagery (satellite)
+        const esriImagery = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© ESRI',
+                maxZoom: 18,
+            }
+        );
+
+        // === Hillshade Overlays ===
+
+        // ESRI World Hillshade (free, no token)
+        const esriHillshade = L.tileLayer(
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© ESRI Hillshade',
+                maxZoom: 18,
+                opacity: 0.35,
+            }
+        );
+
+        // Combined: OSM + Hillshade blend
+        const osmHillshadeGroup = L.layerGroup([osmStandard, esriHillshade]);
+
+        // GOVMAP WMS — Open Data
+        const govmapWMS = L.tileLayer.wms('https://open.govmap.gov.il/geoserver/opendata/wms', {
+            layers: 'opendata:REGIONAL_COUNCILS',
+            format: 'image/png',
+            transparent: true,
+            attribution: '© GOVMAP',
+            maxZoom: 18,
+        });
+
+        // OpenTopoMap (built-in terrain)
+        const openTopo = L.tileLayer(
+            'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenTopoMap',
+                maxZoom: 17,
+            }
+        );
+
         baseLayers = {
-            'OSM רגיל': osmStandard,
-            'בהיר (CartoDB)': cartoLight,
-            'כהה (CartoDB)': cartoDark,
-            'GOVMAP מועצות': govmapWMS,
+            '🗺️ OSM + תבליט': osmHillshadeGroup,
+            '🗺️ OSM רגיל': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap', maxZoom: 19
+            }),
+            '🎨 Voyager': cartoVoyager,
+            '🌙 כהה': cartoDark,
+            '🛰️ לוויין (ESRI)': esriImagery,
+            '⛰️ טופוגרפי': openTopo,
+            '🏛️ GOVMAP': govmapWMS,
         };
 
-        // Default base layer
-        osmStandard.addTo(map);
+        overlayLayers = {
+            '⛰️ תבליט (Hillshade)': esriHillshade,
+        };
+
+        // Default: OSM + Hillshade
+        osmHillshadeGroup.addTo(map);
     }
 
     function _addLayerControl() {
-        L.control.layers(baseLayers, {}, {
+        L.control.layers(baseLayers, overlayLayers, {
             position: 'topleft',
             collapsed: true,
         }).addTo(map);
     }
 
-    function getMap() {
-        return map;
-    }
+    function getMap() { return map; }
 
     function fitToFeatures(geojsonLayer) {
         if (geojsonLayer && geojsonLayer.getBounds && geojsonLayer.getLayers().length > 0) {

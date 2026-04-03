@@ -151,16 +151,25 @@ def generate_stations_geojson() -> Dict:
 
 
 def generate_inundation_geojson(wave_height: float) -> Dict:
-    """Generate inundation zone GeoJSON based on wave height along the Israeli coast."""
-    # Israeli Mediterranean coastline approximate points (lat, lon)
+    """Generate inundation zone GeoJSON based on wave height along the Israeli coast.
+    Zones are always INLAND (east) of the coastline."""
+    # Israeli Mediterranean coastline — denser points for Haifa bay accuracy
     coast_points = [
-        (33.08, 35.10), (33.00, 35.08), (32.92, 35.07), (32.85, 35.00),
-        (32.80, 34.97), (32.75, 34.96), (32.70, 34.94), (32.60, 34.92),
-        (32.50, 34.89), (32.45, 34.87), (32.40, 34.86), (32.33, 34.85),
-        (32.25, 34.83), (32.20, 34.80), (32.15, 34.78), (32.10, 34.77),
-        (32.05, 34.75), (32.02, 34.74), (31.97, 34.73), (31.90, 34.70),
-        (31.84, 34.66), (31.80, 34.65), (31.75, 34.63), (31.70, 34.58),
-        (31.65, 34.56),
+        # North — Nahariya to Akko
+        (33.08, 35.10), (33.02, 35.09), (33.00, 35.08), (32.95, 35.07),
+        # Haifa bay — detailed (coast goes east into bay then back west)
+        (32.92, 35.07), (32.88, 35.04), (32.85, 35.02), (32.83, 35.00),
+        (32.82, 34.98), (32.81, 34.97), (32.80, 34.97),
+        # South of Haifa
+        (32.77, 34.96), (32.73, 34.95), (32.70, 34.94),
+        # Hadera — Netanya
+        (32.60, 34.92), (32.50, 34.89), (32.45, 34.87), (32.40, 34.86),
+        # Herzliya — Tel Aviv
+        (32.33, 34.85), (32.25, 34.83), (32.20, 34.80), (32.15, 34.78),
+        (32.10, 34.77), (32.05, 34.75), (32.02, 34.74),
+        # Rishon — Ashdod — Ashkelon
+        (31.97, 34.73), (31.90, 34.70), (31.84, 34.66), (31.80, 34.65),
+        (31.75, 34.63), (31.70, 34.58), (31.65, 34.56),
     ]
 
     # Buffer distance based on wave height (approximate degrees)
@@ -171,7 +180,7 @@ def generate_inundation_geojson(wave_height: float) -> Dict:
         lat1, lon1 = coast_points[i]
         lat2, lon2 = coast_points[i + 1]
 
-        # Create a polygon strip inland from coastline
+        # Compute perpendicular normal vector
         dx = lon2 - lon1
         dy = lat2 - lat1
         length = math.sqrt(dx * dx + dy * dy)
@@ -180,8 +189,15 @@ def generate_inundation_geojson(wave_height: float) -> Dict:
         nx = -dy / length * buffer_deg
         ny = dx / length * buffer_deg
 
+        # CRITICAL: Ensure offset goes INLAND (east = positive longitude)
+        # For Israel's coast, inland is always toward higher longitude
+        if nx < 0:
+            nx = -nx
+            ny = -ny
+
         depth = wave_height * random.uniform(0.3, 1.0)
 
+        # Polygon: coastline edge → inland offset
         polygon = [
             [lon1, lat1],
             [lon2, lat2],
@@ -190,11 +206,20 @@ def generate_inundation_geojson(wave_height: float) -> Dict:
             [lon1, lat1],
         ]
 
+        # Max depth explanation
+        if depth >= 5:
+            depth_desc = "הצפה חמורה — סכנת חיים מיידית"
+        elif depth >= 2:
+            depth_desc = "הצפה בינונית — פינוי נדרש"
+        else:
+            depth_desc = "הצפה קלה — זהירות"
+
         feature = {
             "type": "Feature",
             "properties": {
                 "wave_height_m": wave_height,
                 "max_depth_m": round(depth, 1),
+                "max_depth_desc": depth_desc,
                 "segment_id": i,
             },
             "geometry": {"type": "Polygon", "coordinates": [polygon]},

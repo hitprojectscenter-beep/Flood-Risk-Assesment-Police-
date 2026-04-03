@@ -3,93 +3,119 @@
 ## Project Overview
 GIS-based web application for assessing tsunami risk per police station territory along the Israeli Mediterranean coastline. Developed for the Israel Police as a decision-support tool for emergency resource allocation.
 
-## Conversation Summary
+## Architecture
+**Standalone web application** — static frontend (HTML/JS/Leaflet.js) + Python FastAPI backend + Firebase Realtime Database.
 
-### User Request (2026-04-03)
-The user requested development of a GIS application based on two specification documents:
-- **BRD (Business Requirements Document)** — Defines the TSRS model, stakeholders, functional requirements, and acceptance criteria
-- **TDD (Technical Design Document)** — Specifies architecture (React/Leaflet + FastAPI + PostGIS), database schema, API endpoints, TSRS formula, and security model
-
-### Key Requirements Discussed
-1. **Map Object**: Must be the central UI element, based on **GOVMAP** (Israel's government mapping service)
-2. **Architecture**: Standalone application (not integrated into existing Streamlit project)
-3. **GOVMAP Integration**: No API token available — using open WMS services + OSM as fallback
-4. **Database**: Firebase Realtime Database for data storage
-5. **Geographic Engine**: Leaflet.js
-6. **Data Sources**: CBS demographic CSVs (age demographics, socioeconomic profiles), QGIS2WEB exported GIS layers
-
-### Decisions Made
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Architecture | Standalone HTML/JS + FastAPI | Per TDD spec, not merged with existing Streamlit app |
-| Map engine | Leaflet.js | Per TDD spec, lightweight, wide plugin ecosystem |
-| Base map | GOVMAP WMS + OSM fallback | User requested GOVMAP; no token so using open WMS |
-| Database | Firebase Realtime DB | User requested Firebase for data storage |
-| Data fallback | Firebase → API → Local JSON | Ensures app works in all environments |
-| Hebrew RTL | Full RTL layout | Per BRD requirement, sidebar on right |
-| Station data | Sample 15 coastal stations | POC with realistic coordinates and demographics |
-
-## Tech Stack
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript, Leaflet.js 1.9
-- **Backend**: Python FastAPI + Uvicorn
-- **Database**: Firebase Realtime Database
-- **Map Services**: GOVMAP WMS, OpenStreetMap, CartoDB
-- **Data**: CBS demographic CSVs, GeoJSON
+- **Frontend**: HTML5, CSS3, Vanilla JS, Leaflet.js 1.9, osmtogeojson
+- **Backend**: Python FastAPI (optional — app works fully static from JSON files)
+- **Database**: Firebase Realtime Database (optional — fallback to local JSON)
+- **Map**: ESRI Hillshade + OSM (default), CartoDB, ESRI Satellite, OpenTopoMap, GOVMAP WMS
+- **Data Sources**: CBS demographic CSVs, OSM Overpass API (city boundaries, roads, buildings)
+- **Deployment**: Vercel (static) — `vercel.json` configured
 
 ## TSRS Formula
 ```
 TSRS = H × 0.35 + V × 0.30 + O × 0.20 + R⁻¹ × 0.10 + I⁻¹ × 0.05
 ```
-- **H** (Hazard): Inundation area percentage, wave depth, coast proximity
-- **V** (Vulnerability): Elderly %, children %, economic index, mobility
-- **O** (Operational): Evacuation bottleneck score
-- **R** (Response): Available police resources (inverted)
-- **I** (Infrastructure): Shelter availability (inverted)
+
+| Component | Hebrew | 3-Word Description | Weight |
+|-----------|--------|-------------------|--------|
+| H (Hazard) | סיכון הצפה | חשיפה לגלי צונאמי | 35% |
+| V (Vulnerability) | פגיעות | פגיעות דמוגרפית | 30% |
+| O (Operational) | צוואר בקבוק | קושי בפינוי | 20% |
+| R (Response) | תגובה | משאבי תגובה | 10% |
+| I (Infrastructure) | תשתיות | מבנים ומקלטים | 5% |
+
+### Score Interpretation
+| Score | Hebrew | English |
+|-------|--------|---------|
+| 0-20 | מצוין | Excellent readiness |
+| 20-40 | טוב | Good readiness |
+| 40-60 | מספק | Satisfactory, needs monitoring |
+| 60-80 | דורש שיפור | Needs significant improvement |
+| 80-100 | קריטי | Critical — immediate response |
+
+## Conversation Summary
+
+### Session 1 — 2026-04-03
+- Read BRD + TDD specification documents (Hebrew .docx)
+- Read CBS demographic CSVs (age breakdown, socioeconomic profiles)
+- Analyzed QGIS2WEB export (7 OSM layers for Jerusalem area)
+- Researched GOVMAP API (WMS endpoint, no token needed for open layers)
+- Chose: standalone app (not Streamlit), GOVMAP WMS + OSM, Firebase
+- Built complete app: 25 files, FastAPI backend, Leaflet frontend, RTL Hebrew UI
+- Verified: map loads, stations colored by TSRS, popups with score breakdown, operational panel
+
+### Session 1 — Continued
+- Fixed Firebase placeholder detection (skip when no real config)
+- Fixed production data loading for Vercel (skip API, use local JSON)
+- Created vercel.json for static deployment
+- Added OSM overlay layers (roads + buildings) via Overpass API with zoom-dependent enable/disable
+- Fixed z-ordering with custom Leaflet panes
+
+### Session 1 — Major Redesign
+User feedback triggered 8+ improvements:
+1. **TSRS explanations**: Added 3-word descriptions per category + verbal overall score
+2. **Inundation fix**: Fixed direction (now always inland), added Haifa bay detail, max depth explanation
+3. **Real city boundaries**: Overpass API script to fetch real municipal polygons for ~19 coastal cities
+4. **Hillshade**: ESRI World Hillshade (free, no token) as overlay + default base
+5. **Modern design**: Dark glassmorphism theme (Rubik font, teal accent, frosted glass sidebar)
+6. **Police station icons**: At zoom 15+ show Israel Police icon markers (planned)
+7. **Building symbology**: Red (below flood) / Green (above flood) / Blue (shelter) (planned)
+8. **Geographic profiling**: Population, age distribution bar chart, socioeconomic cluster on city click (planned)
 
 ## Project Structure
 ```
 tsrs-app/
 ├── frontend/
-│   ├── index.html          # Main RTL Hebrew UI
-│   ├── css/style.css       # Responsive RTL stylesheet
+│   ├── index.html              # Main RTL Hebrew UI (dark theme)
+│   ├── css/style.css           # Glassmorphism dark design
 │   ├── js/
-│   │   ├── app.js          # Main controller
-│   │   ├── map.js          # Leaflet + GOVMAP WMS
-│   │   ├── tsrs.js         # Station visualization & popups
-│   │   ├── controls.js     # District selector, wave slider
-│   │   ├── inundation.js   # Flood zone layer
-│   │   ├── operational.js  # Operational guidelines panel
+│   │   ├── app.js              # Main controller
+│   │   ├── map.js              # Leaflet + Hillshade + GOVMAP
+│   │   ├── tsrs.js             # Station viz, popups with explanations
+│   │   ├── controls.js         # District selector, wave slider, toggles
+│   │   ├── inundation.js       # Flood zone layer
+│   │   ├── osm-overlays.js     # OSM roads/buildings via Overpass API
+│   │   ├── operational.js      # Operational guidelines panel
 │   │   └── firebase-config.js  # Firebase integration
-│   └── data/               # Generated JSON data files
+│   └── data/                   # Pre-generated JSON
+│       ├── cities.json         # Real municipal boundaries from OSM
+│       ├── stations.json       # Sample station polygons (fallback)
+│       ├── coastline.json      # Mediterranean coastline
+│       └── inundation.json     # All wave heights 0.5-10m
 ├── backend/
-│   ├── main.py             # FastAPI server
+│   ├── main.py                 # FastAPI server
 │   ├── models/tsrs_model.py    # TSRS calculation engine
 │   ├── data/geo_utils.py       # GeoJSON generators
 │   ├── data/load_csv.py        # CBS data loader
-│   ├── populate_firebase.py    # Firebase population script
-│   └── requirements.txt
-├── CLAUDE.md               # This file
-└── Memory.md               # Development log
+│   ├── generate_cities.py      # OSM city boundary fetcher
+│   └── populate_firebase.py    # Firebase data population
+├── vercel.json                 # Vercel static deployment config
+├── CLAUDE.md                   # This file
+└── Memory.md                   # Development log
 ```
 
-## Running the Application
+## Running
 
-### Option 1: Static (Local JSON)
-Open `frontend/index.html` in a browser. Data loads from `frontend/data/*.json`.
+### Static (no backend):
+Open `frontend/index.html` in browser. Data loads from `data/*.json`.
 
-### Option 2: With FastAPI Backend
+### With FastAPI:
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+cd backend && pip install -r requirements.txt
+python -m uvicorn main:app --port 5380
 ```
 
-### Option 3: With Firebase
-1. Create Firebase project at console.firebase.google.com
-2. Update `firebase-config.js` with your project credentials
-3. Run: `python backend/populate_firebase.py --credentials serviceAccountKey.json`
+### Vercel:
+Push to GitHub, import in Vercel. Root: `tsrs-app`, Output: `frontend`.
 
-## Data Sources
-- **ישובים_גילאים.csv** — 1,285 settlements, age group breakdown (CBS)
-- **פרופיל חברתי כלכלי לפי ישובים.csv** — Socioeconomic profiles (CBS 2022)
-- **QGIS2WEB layers** — OSM buildings, roads, railways, water (Jerusalem area sample)
+## Key Decisions
+| Decision | Choice | Reason |
+|----------|--------|--------|
+| Map engine | Leaflet.js | BRD/TDD spec, lightweight, extensible |
+| Base map | OSM + ESRI Hillshade | Free, no token, terrain context |
+| City boundaries | OSM Overpass API | Real municipal data, free |
+| Design | Dark glassmorphism | Modern, professional, high contrast for GIS |
+| Data loading | Firebase → API → JSON | Triple fallback, works everywhere |
+| Hebrew RTL | Full RTL | BRD requirement, sidebar right |

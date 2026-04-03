@@ -93,6 +93,19 @@ const TSRSControls = (() => {
                     TSRSOverlays.setBuildingsVisible(map, checked);
                 }
             },
+            'layer-hillshade': () => {
+                const checked = document.getElementById('layer-hillshade').checked;
+                if (!TSRSControls._hillshadeLayer) {
+                    TSRSControls._hillshadeLayer = L.tileLayer(
+                        'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
+                            attribution: '© ESRI Hillshade',
+                            maxZoom: 18,
+                            opacity: 0.35,
+                        }
+                    );
+                }
+                checked ? TSRSControls._hillshadeLayer.addTo(map) : map.removeLayer(TSRSControls._hillshadeLayer);
+            },
         };
 
         Object.keys(toggles).forEach(id => {
@@ -118,5 +131,5 @@ const TSRSControls = (() => {
     function getDistrict() { return currentDistrict; }
     function getWaveHeight() { return currentWaveHeight; }
 
-    return { init, getDistrict, getWaveHeight };
+    return { init, getDistrict, getWaveHeight, _hillshadeLayer: null };
 })();

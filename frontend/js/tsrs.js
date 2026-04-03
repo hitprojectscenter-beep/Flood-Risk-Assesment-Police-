@@ -86,11 +86,12 @@ const TSRSViz = (() => {
 
     async function loadStations(map, district = 'all') {
         try {
+            // Try cities.json (real municipal boundaries) first, then stations.json (sample)
             const data = await fetchData(
                 () => FirebaseConfig.getStations(district),
                 `/api/stations?district=${district}`,
-                'data/stations.json'
-            );
+                'data/cities.json'
+            ) || await fetchData(null, '', 'data/stations.json');
             if (!data) { console.warn('No station data available'); return null; }
 
             if (stationsLayer) {
@@ -146,46 +147,73 @@ const TSRSViz = (() => {
         }
     }
 
+    // Verbal TSRS interpretations
+    function getScoreVerbal(score) {
+        if (score >= 80) return { text: 'קריטי', class: 'verbal-critical' };
+        if (score >= 60) return { text: 'דורש שיפור', class: 'verbal-high' };
+        if (score >= 40) return { text: 'מספק', class: 'verbal-medium' };
+        if (score >= 20) return { text: 'טוב', class: 'verbal-low' };
+        return { text: 'מצוין', class: 'verbal-minimal' };
+    }
+
+    function getOverallVerbal(score) {
+        if (score >= 80) return 'מצב קריטי — נדרשת תגובה מיידית';
+        if (score >= 60) return 'סיכון גבוה — נדרש שיפור משמעותי';
+        if (score >= 40) return 'סיכון בינוני — מצב מספק, נדרש ניטור';
+        if (score >= 20) return 'סיכון נמוך — מוכנות טובה';
+        return 'סיכון מינימלי — מוכנות מצוינת';
+    }
+
     function _buildPopupHTML(props) {
         const scoreColor = getTSRSColor(props.tsrs_score);
         const icon = getRiskIcon(props.risk_tier);
+        const verbal = getOverallVerbal(props.tsrs_score);
 
         const components = [
-            { key: 'H', label: 'סיכון הצפה', score: props.H_score, color: '#EF4444' },
-            { key: 'V', label: 'פגיעות אוכלוסייה', score: props.V_score, color: '#8B5CF6' },
-            { key: 'O', label: 'צוואר בקבוק', score: props.O_score, color: '#F97316' },
-            { key: 'R', label: 'יכולת תגובה', score: props.R_score, color: '#10B981' },
-            { key: 'I', label: 'תשתיות', score: props.I_score, color: '#3B82F6' },
+            { key: 'H', label: 'סיכון הצפה', desc: 'חשיפה לגלי צונאמי', score: props.H_score, color: '#EF4444' },
+            { key: 'V', label: 'פגיעות', desc: 'פגיעות דמוגרפית', score: props.V_score, color: '#8B5CF6' },
+            { key: 'O', label: 'צוואר בקבוק', desc: 'קושי בפינוי', score: props.O_score, color: '#F97316' },
+            { key: 'R', label: 'תגובה', desc: 'משאבי תגובה', score: props.R_score, color: '#10B981' },
+            { key: 'I', label: 'תשתיות', desc: 'מבנים ומקלטים', score: props.I_score, color: '#3B82F6' },
         ];
 
-        let barsHTML = components.map(c => `
+        let barsHTML = components.map(c => {
+            const sv = getScoreVerbal(c.score);
+            return `
             <div class="component-bar">
-                <span class="bar-label">${c.label}</span>
+                <div class="bar-label-group">
+                    <span class="bar-label">${c.label}</span>
+                    <span class="bar-desc">${c.desc}</span>
+                </div>
                 <div class="bar-track">
                     <div class="bar-fill" style="width:${c.score}%; background:${c.color}"></div>
                 </div>
-                <span class="bar-value">${c.score}</span>
-            </div>
-        `).join('');
+                <div class="bar-score-group">
+                    <span class="bar-value">${c.score}</span>
+                    <span class="bar-verbal ${sv.class}">${sv.text}</span>
+                </div>
+            </div>`;
+        }).join('');
 
         return `
             <div class="tsrs-popup">
                 <h3>${icon} ${props.station_name}</h3>
-                <div class="tsrs-total" style="background:${scoreColor}22; border:1px solid ${scoreColor}">
-                    <span>ציון TSRS</span>
-                    <span style="color:${scoreColor}; font-size:22px">${props.tsrs_score}</span>
+                <div class="tsrs-total" style="background:${scoreColor}15; border:1px solid ${scoreColor}">
+                    <div>
+                        <div style="font-size:12px; color:#666">ציון TSRS</div>
+                        <div style="font-size:11px; color:${scoreColor}; margin-top:2px">${verbal}</div>
+                    </div>
+                    <span style="color:${scoreColor}; font-size:26px; font-weight:800">${props.tsrs_score}</span>
                 </div>
-                <div style="margin-bottom:6px">
-                    <span style="font-size:12px; color:#666">דרגת סיכון: </span>
-                    <strong>${props.risk_tier_he}</strong>
-                    <span style="margin-right:10px; font-size:12px; color:#666">נפה: </span>
-                    <strong>${props.district}</strong>
+                <div style="margin-bottom:8px; display:flex; gap:12px; font-size:12px">
+                    <span><span style="color:#999">דרגה:</span> <strong>${props.risk_tier_he}</strong></span>
+                    <span><span style="color:#999">נפה:</span> <strong>${props.district}</strong></span>
                 </div>
                 ${barsHTML}
-                <div style="margin-top:8px; font-size:12px; color:#666">
-                    👥 אוכלוסייה: ${props.population.toLocaleString()} |
-                    🏗️ מקלטים: ${props.vertical_shelters} |
-                    🚗 צירי פינוי: ${props.evacuation_routes}
+                <div style="margin-top:10px; font-size:12px; color:#555; display:flex; gap:8px; flex-wrap:wrap">
+                    <span>👥 ${props.population.toLocaleString()}</span>
+                    <span>🏗️ ${props.vertical_shelters} מקלטים</span>
+                    <span>🚗 ${props.evacuation_routes} צירים</span>
                 </div>
                 <div class="popup-actions">
                     <button class="popup-btn popup-btn-primary" onclick="TSRSOps.loadOperational('${props.station_id}')">📋 הנחיות מבצעיות</button>
