@@ -41,6 +41,12 @@
             TSRSMap.fitToFeatures(stationsLayer);
         }
 
+        // Close mobile sidebar when clicking the map
+        map.on('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.classList.remove('sidebar-open');
+        });
+
         console.log('TSRS Application initialized successfully');
     } catch (err) {
         console.error('Error initializing TSRS app:', err);
