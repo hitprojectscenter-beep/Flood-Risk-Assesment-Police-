@@ -235,23 +235,26 @@ const TSRSOverlays = (() => {
 
             const geojson = osmtogeojson(data);
 
+            // Get current max flood depth from wave height
+            const waveHeight = typeof TSRSControls !== 'undefined' ? TSRSControls.getWaveHeight() : 2.0;
+            const maxFloodDepth = waveHeight * 0.7; // approximate max depth
+
             if (buildingsLayer) _map.removeLayer(buildingsLayer);
             buildingsLayer = L.geoJSON(geojson, {
                 pane: 'buildingsPane',
-                style: () => ({
-                    fillColor: '#8B7355',
-                    fillOpacity: 0.5,
-                    color: '#6B5B45',
-                    weight: 1,
-                    opacity: 0.7,
-                }),
+                style: (feature) => _buildingFloodStyle(feature, maxFloodDepth),
                 onEachFeature: (feature, layer) => {
                     const name = feature.properties.name || '';
                     const type = feature.properties.building || '';
-                    const tip = name || (type !== 'yes' ? type : '');
-                    if (tip) {
-                        layer.bindTooltip(tip, { direction: 'top', sticky: true });
-                    }
+                    const levels = _getBuildingLevels(feature);
+                    const heightM = levels * 3;
+                    const status = _getBuildingFloodStatus(heightM, maxFloodDepth, levels);
+                    const statusText = status === 'shelter' ? '🔵 מקלט פוטנציאלי' :
+                                       status === 'safe' ? '🟢 מעל עומק הצפה' :
+                                       '🔴 מתחת לעומק הצפה';
+                    const tip = `${name || type || 'מבנה'}<br>${levels} קומות (~${heightM}מ')<br>${statusText}<br>עומק הצפה מירבי: ${maxFloodDepth.toFixed(1)}מ'`;
+                    layer.bindTooltip(tip, { direction: 'top', sticky: true });
+                }
                 },
             });
             buildingsLayer.addTo(_map);
@@ -265,6 +268,40 @@ const TSRSOverlays = (() => {
         } finally {
             if (label) label.classList.remove('layer-loading');
         }
+    }
+
+    // ========== Internal: Building Flood Analysis ==========
+
+    function _getBuildingLevels(feature) {
+        const levels = parseInt(feature.properties['building:levels']) ||
+                       parseInt(feature.properties['levels']) || 2; // default 2 floors
+        return Math.max(1, levels);
+    }
+
+    function _getBuildingFloodStatus(heightM, maxFloodDepth, levels) {
+        if (levels >= 4 && heightM > maxFloodDepth) return 'shelter'; // Potential vertical shelter
+        if (heightM > maxFloodDepth) return 'safe';                    // Above flood level
+        return 'submerged';                                             // Below flood level
+    }
+
+    function _buildingFloodStyle(feature, maxFloodDepth) {
+        const levels = _getBuildingLevels(feature);
+        const heightM = levels * 3; // ~3m per floor
+        const status = _getBuildingFloodStatus(heightM, maxFloodDepth, levels);
+
+        const colors = {
+            submerged: { fill: '#EF4444', border: '#B91C1C', opacity: 0.6 },  // Red
+            safe:      { fill: '#10B981', border: '#059669', opacity: 0.5 },  // Green
+            shelter:   { fill: '#3B82F6', border: '#1D4ED8', opacity: 0.6 },  // Blue
+        };
+        const c = colors[status];
+        return {
+            fillColor: c.fill,
+            fillOpacity: c.opacity,
+            color: c.border,
+            weight: 1,
+            opacity: 0.8,
+        };
     }
 
     // ========== Internal: Overpass API ==========

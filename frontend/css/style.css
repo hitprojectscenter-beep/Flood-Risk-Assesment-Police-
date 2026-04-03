@@ -449,6 +449,17 @@ body {
     box-shadow: 0 0 12px var(--accent-glow);
 }
 
+.popup-btn-secondary {
+    background: var(--card-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.popup-btn-secondary:hover {
+    background: var(--primary-light);
+    border-color: var(--accent);
+}
+
 /* ===== Station Summary (sidebar) ===== */
 #station-summary-content {
     font-size: 12px;

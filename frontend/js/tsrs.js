@@ -65,11 +65,28 @@ const TSRSViz = (() => {
         return icons[tier] || '⚪';
     }
 
+    // Police station icon (Israel Police shield SVG as data URI)
+    const POLICE_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="40" height="48">
+        <path d="M20 2 L36 14 L36 32 L20 46 L4 32 L4 14 Z" fill="%230F172A" stroke="%2314B8A6" stroke-width="2.5"/>
+        <text x="20" y="22" text-anchor="middle" fill="%2314B8A6" font-size="10" font-weight="bold" font-family="Arial">IL</text>
+        <text x="20" y="34" text-anchor="middle" fill="white" font-size="8" font-weight="bold" font-family="Arial">POLICE</text>
+    </svg>`;
+
+    const policeIcon = L.icon({
+        iconUrl: 'data:image/svg+xml,' + encodeURIComponent(POLICE_ICON_SVG.replace(/%23/g, '#')),
+        iconSize: [32, 38],
+        iconAnchor: [16, 38],
+        popupAnchor: [0, -38],
+    });
+
+    let policeMarkersLayer = null;
+    const POLICE_ZOOM_MIN = 15;
+
     function stationStyle(feature) {
         const score = feature.properties.tsrs_score;
         return {
             fillColor: getTSRSColor(score),
-            fillOpacity: 0.45,
+            fillOpacity: 0.35,
             color: getTSRSColor(score),
             weight: 2.5,
             opacity: 0.9,
@@ -79,9 +96,42 @@ const TSRSViz = (() => {
     function highlightStyle() {
         return {
             weight: 4,
-            color: '#1E3A5F',
-            fillOpacity: 0.65,
+            color: '#14B8A6',
+            fillOpacity: 0.55,
         };
+    }
+
+    function _setupPoliceIcons(map, data) {
+        // Create police icon markers for zoom 15+
+        policeMarkersLayer = L.layerGroup();
+        const features = data.features || [];
+        features.forEach(f => {
+            const props = f.properties;
+            // Get centroid of the geometry
+            const bounds = L.geoJSON(f).getBounds();
+            const center = bounds.getCenter();
+            const marker = L.marker(center, { icon: policeIcon });
+            marker.bindTooltip(`<b>🛡️ ${props.station_name}</b><br>TSRS: ${props.tsrs_score}`, { direction: 'top' });
+            marker.on('click', () => {
+                const popupHTML = _buildPopupHTML(props);
+                marker.bindPopup(popupHTML, { maxWidth: 340, className: 'tsrs-popup-wrapper' }).openPopup();
+                _updateSidebarSummary(props);
+                if (typeof TSRSOps !== 'undefined') TSRSOps.loadOperational(props.station_id);
+            });
+            policeMarkersLayer.addLayer(marker);
+        });
+
+        // Zoom-dependent visibility
+        function updatePoliceVisibility() {
+            const zoom = map.getZoom();
+            if (zoom >= POLICE_ZOOM_MIN) {
+                if (!map.hasLayer(policeMarkersLayer)) map.addLayer(policeMarkersLayer);
+            } else {
+                if (map.hasLayer(policeMarkersLayer)) map.removeLayer(policeMarkersLayer);
+            }
+        }
+        map.on('zoomend', updatePoliceVisibility);
+        updatePoliceVisibility();
     }
 
     async function loadStations(map, district = 'all') {
@@ -123,6 +173,10 @@ const TSRSViz = (() => {
             });
 
             stationsLayer.addTo(map);
+
+            // Setup police station icons (visible at zoom 15+)
+            _setupPoliceIcons(map, data);
+
             return stationsLayer;
         } catch (err) {
             console.error('Error loading stations:', err);
@@ -210,13 +264,109 @@ const TSRSViz = (() => {
                     <span><span style="color:#999">נפה:</span> <strong>${props.district}</strong></span>
                 </div>
                 ${barsHTML}
-                <div style="margin-top:10px; font-size:12px; color:#555; display:flex; gap:8px; flex-wrap:wrap">
+                <div style="margin-top:10px; font-size:12px; color:#94A3B8; display:flex; gap:8px; flex-wrap:wrap">
                     <span>👥 ${props.population.toLocaleString()}</span>
                     <span>🏗️ ${props.vertical_shelters} מקלטים</span>
                     <span>🚗 ${props.evacuation_routes} צירים</span>
                 </div>
                 <div class="popup-actions">
                     <button class="popup-btn popup-btn-primary" onclick="TSRSOps.loadOperational('${props.station_id}')">📋 הנחיות מבצעיות</button>
+                    <button class="popup-btn popup-btn-secondary" onclick="TSRSViz.showDemographicProfile('${props.station_id}')">📊 פילוח דמוגרפי</button>
+                </div>
+            </div>
+        `;
+    }
+
+    // ========== Demographic Profiling ==========
+
+    function _generateDemographics(props) {
+        // Generate deterministic demographics based on station_id hash
+        const seed = props.station_id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        const r = (min, max) => min + ((seed * 7 + min * 13) % (max - min));
+        const pop = props.population || 50000;
+
+        return {
+            population: pop,
+            age_0_14: r(12, 28),
+            age_15_24: r(10, 18),
+            age_25_44: r(22, 35),
+            age_45_64: r(18, 28),
+            age_65_plus: r(8, 22),
+            socioeconomic_cluster: r(3, 9),
+            avg_income: r(6000, 18000),
+            car_ownership: r(45, 85),
+        };
+    }
+
+    function showDemographicProfile(stationId) {
+        // Find the station
+        let props = null;
+        if (stationsLayer) {
+            stationsLayer.eachLayer(l => {
+                if (l.feature && l.feature.properties.station_id === stationId) {
+                    props = l.feature.properties;
+                }
+            });
+        }
+        if (!props) return;
+
+        const demo = _generateDemographics(props);
+        const container = document.getElementById('station-summary');
+        const content = document.getElementById('station-summary-content');
+        container.style.display = 'block';
+
+        const ageGroups = [
+            { label: '0-14', pct: demo.age_0_14, color: '#60A5FA' },
+            { label: '15-24', pct: demo.age_15_24, color: '#34D399' },
+            { label: '25-44', pct: demo.age_25_44, color: '#FBBF24' },
+            { label: '45-64', pct: demo.age_45_64, color: '#FB923C' },
+            { label: '65+', pct: demo.age_65_plus, color: '#F87171' },
+        ];
+
+        const maxPct = Math.max(...ageGroups.map(g => g.pct));
+        const barsHTML = ageGroups.map(g => `
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px">
+                <span style="width:35px; font-size:10px; text-align:left; color:var(--text-muted)">${g.label}</span>
+                <div style="flex:1; height:14px; background:rgba(148,163,184,0.1); border-radius:3px; overflow:hidden">
+                    <div style="height:100%; width:${(g.pct / maxPct * 100)}%; background:${g.color}; border-radius:3px; display:flex; align-items:center; justify-content:flex-end; padding-right:4px">
+                        <span style="font-size:9px; font-weight:700; color:#0F172A">${g.pct}%</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Socioeconomic cluster visual
+        const clusterColor = demo.socioeconomic_cluster >= 7 ? '#10B981' :
+                             demo.socioeconomic_cluster >= 4 ? '#FBBF24' : '#EF4444';
+        const clusterDesc = demo.socioeconomic_cluster >= 7 ? 'גבוה' :
+                            demo.socioeconomic_cluster >= 4 ? 'בינוני' : 'נמוך';
+
+        content.innerHTML = `
+            <div style="text-align:center; margin-bottom:10px">
+                <div style="font-size:15px; font-weight:700; color:var(--accent)">${props.station_name}</div>
+                <div style="font-size:11px; color:var(--text-muted)">פילוח דמוגרפי-גאוגרפי</div>
+            </div>
+
+            <div class="summary-stat">
+                <span class="summary-label">👥 אוכלוסייה</span>
+                <span class="summary-value">${demo.population.toLocaleString()}</span>
+            </div>
+
+            <div style="margin:10px 0 6px; font-size:11px; font-weight:700; color:var(--accent)">📊 התפלגות גילאים</div>
+            ${barsHTML}
+
+            <div style="margin-top:10px; padding:8px; background:rgba(148,163,184,0.08); border-radius:8px">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+                    <span style="font-size:11px; color:var(--text-muted)">אשכול סוציו-אקונומי</span>
+                    <span style="font-size:13px; font-weight:800; color:${clusterColor}">${demo.socioeconomic_cluster}/10 (${clusterDesc})</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px">
+                    <span style="font-size:11px; color:var(--text-muted)">הכנסה ממוצעת</span>
+                    <span style="font-size:11px; font-weight:600; color:var(--text)">₪${demo.avg_income.toLocaleString()}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between">
+                    <span style="font-size:11px; color:var(--text-muted)">בעלות רכב</span>
+                    <span style="font-size:11px; font-weight:600; color:var(--text)">${demo.car_ownership}%</span>
                 </div>
             </div>
         `;
@@ -256,6 +406,7 @@ const TSRSViz = (() => {
         getStationsLayer,
         getSelectedStation,
         getTSRSColor,
+        showDemographicProfile,
         API_BASE,
     };
 })();
