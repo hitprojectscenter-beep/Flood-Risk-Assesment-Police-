@@ -213,6 +213,41 @@ body {
     accent-color: var(--primary);
 }
 
+/* Disabled OSM layer toggles (zoom out of range) */
+.toggle-label.layer-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.toggle-label.layer-disabled input[type="checkbox"] {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.zoom-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-right: 4px;
+}
+
+/* Loading spinner while fetching OSM data */
+.layer-loading::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ===== Legend ===== */
 .legend {
     display: flex;

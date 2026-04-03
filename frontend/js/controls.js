@@ -81,6 +81,18 @@ const TSRSControls = (() => {
                     TSRSInundation.setCoastlineVisible(map, checked);
                 }
             },
+            'layer-roads': () => {
+                if (typeof TSRSOverlays !== 'undefined') {
+                    const checked = document.getElementById('layer-roads').checked;
+                    TSRSOverlays.setRoadsVisible(map, checked);
+                }
+            },
+            'layer-buildings': () => {
+                if (typeof TSRSOverlays !== 'undefined') {
+                    const checked = document.getElementById('layer-buildings').checked;
+                    TSRSOverlays.setBuildingsVisible(map, checked);
+                }
+            },
         };
 
         Object.keys(toggles).forEach(id => {

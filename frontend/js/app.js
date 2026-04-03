@@ -15,6 +15,11 @@
     // 3. Initialize controls (district, wave slider, layer toggles)
     TSRSControls.init(map);
 
+    // 3b. Initialize OSM overlays (roads/buildings with zoom-dependent visibility)
+    if (typeof TSRSOverlays !== 'undefined') {
+        TSRSOverlays.init(map);
+    }
+
     // 4. Load initial data layers
     try {
         // Load coastline
