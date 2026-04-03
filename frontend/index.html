@@ -26,6 +26,7 @@
             </div>
         </div>
         <div class="header-left">
+            <button id="info-btn" class="info-btn" onclick="toggleInfoModal()" title="הסבר על המערכת">ℹ️ הסבר</button>
             <div class="lang-selector">
                 <button class="lang-btn lang-active" data-lang="he" onclick="I18n.setLanguage('he')">עב</button>
                 <button class="lang-btn" data-lang="en" onclick="I18n.setLanguage('en')">EN</button>
@@ -36,6 +37,74 @@
             <span id="current-datetime" class="header-datetime"></span>
         </div>
     </header>
+
+    <!-- Info Modal — opens on app load -->
+    <div id="info-modal" class="info-modal">
+        <div class="info-modal-content">
+            <button class="info-close" onclick="toggleInfoModal()">✕</button>
+
+            <div class="info-header">
+                <div style="font-size:40px">🛡️</div>
+                <div>
+                    <h2>TSRS — Tsunami Station Risk Score</h2>
+                    <p>מודל גאוגרפי לתיעדוף הקצאת משאבים — משטרת ישראל</p>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>🎯 הבעיה</h3>
+                <p>קו החוף הישראלי חשוף לסכנת צונאמי מרעידות אדמה בים התיכון. בסביבת <strong>Near-field</strong>, זמן ההתראה קצר מ-20 דקות. משטרת ישראל, כ-<strong>First Responder</strong>, פועלת בזמן אפס — לפני פיקוד העורף ולפני מל"ח.</p>
+                <p>כיום אין כלי GIS ייעודי להערכת סיכון צונאמי, וכוחות מוקצים ידנית ללא שיקלול אוכלוסייה ופגיעות.</p>
+            </div>
+
+            <div class="info-section">
+                <h3>📐 המודל — 5 מדדים משוקללים</h3>
+                <div class="info-formula">TSRS = (H × 0.35) + (V × 0.30) + (O × 0.20) + (R⁻¹ × 0.10) + (I⁻¹ × 0.05)</div>
+                <div class="info-grid">
+                    <div class="info-metric"><span class="info-weight">35%</span><strong>H — חשיפה פיזית</strong><br>קרבת חוף, אחוז הצפה, זמן גל</div>
+                    <div class="info-metric"><span class="info-weight">30%</span><strong>V — פגיעות אוכלוסייה</strong><br>גיל, ניידות, מוסדות, מדד חברתי-כלכלי</div>
+                    <div class="info-metric"><span class="info-weight">20%</span><strong>O — עומס מבצעי</strong><br>צווארי בקבוק, צירי פינוי, ABM</div>
+                    <div class="info-metric"><span class="info-weight">10%</span><strong>R⁻¹ — גרעון משאבים</strong><br>ניידות, זמן תגובה, הכשרה</div>
+                    <div class="info-metric"><span class="info-weight">5%</span><strong>I⁻¹ — חוסן תשתית</strong><br>צירים חלופיים, מקלטים, DTN</div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>🗺️ היישום</h3>
+                <p>מערכת GIS אינטראקטיבית המאפשרת למפקד תחנה לבחור <strong>גובה גל</strong> ו<strong>נפה</strong>, ולקבל:</p>
+                <ul>
+                    <li>מפת הצפות דינמית כ<strong>מפת חום</strong></li>
+                    <li>ציון TSRS (0–100) לכל עיר עם פירוט 5 מדדים</li>
+                    <li>הנחיות מבצעיות: ניידות גיבוי, צירי פינוי, מקלטים</li>
+                    <li>פילוח דמוגרפי-גאוגרפי מנתוני למ"ס</li>
+                    <li>שכבות OSM: כבישים, מבנים, תחנות משטרה</li>
+                </ul>
+            </div>
+
+            <div class="info-section">
+                <h3>📊 דרגות סיכון</h3>
+                <div style="display:flex; gap:8px; flex-wrap:wrap">
+                    <span class="info-tier" style="background:#EF4444">80+ קריטי</span>
+                    <span class="info-tier" style="background:#F97316">60+ גבוה</span>
+                    <span class="info-tier" style="background:#EAB308; color:#000">40+ בינוני</span>
+                    <span class="info-tier" style="background:#22C55E; color:#000">20+ נמוך</span>
+                    <span class="info-tier" style="background:#3B82F6">&lt;20 מינימלי</span>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>🔧 מקורות מידע</h3>
+                <p>נתוני אוכלוסייה: <strong>הלמ"ס</strong> | גבולות מוניציפליים: <strong>OpenStreetMap</strong> | תחנות משטרה: <strong>OSM</strong> | תבליט: <strong>ESRI Hillshade</strong></p>
+                <p style="font-size:11px; color:var(--text-dim); margin-top:8px">מבוסס על: Wood & Jones (2015) | Tucson Workload Model | מחקרי ABM</p>
+            </div>
+
+            <div style="text-align:center; margin-top:16px">
+                <button class="info-start-btn" onclick="toggleInfoModal()">🚀 התחל לעבוד עם המערכת</button>
+            </div>
+
+            <p class="info-footer">"מידע גאוגרפי מציל חיים — הכנה מוקדמת מציל יותר"</p>
+        </div>
+    </div>
 
     <!-- Main Layout -->
     <div id="app-container">
@@ -144,6 +213,19 @@
             </div>
         </main>
     </div>
+
+    <!-- Info Modal toggle (inline — needed before modules load) -->
+    <script>
+    function toggleInfoModal() {
+        const modal = document.getElementById('info-modal');
+        modal.classList.toggle('hidden');
+    }
+    // Show on page load (auto-open)
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('info-modal');
+        if (modal) modal.classList.remove('hidden');
+    });
+    </script>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
