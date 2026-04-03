@@ -131,6 +131,7 @@
 3. `Fix OSM overlay layers` — Overpass API roads/buildings
 4. `Major redesign` — Dark glassmorphism, TSRS explanations, hillshade
 5. `Add real municipal boundaries` — 11 cities from OSM
+5b. `Add ALL 554 Israeli municipal boundaries` — bulk Overpass query (admin_level 7+8)
 6. `Add police icons, building symbology, demographic profiling`
 7. `Fix 5 critical bugs` — Init order, syntax, demographics, popup close
 8. `Add heatmap inundation visualization` — Leaflet.heat dynamic heatmap

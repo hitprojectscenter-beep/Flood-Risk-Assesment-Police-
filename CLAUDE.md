@@ -57,7 +57,7 @@ TSRS = H × 0.35 + V × 0.30 + O × 0.20 + R⁻¹ × 0.10 + I⁻¹ × 0.05
 User feedback triggered 8+ improvements:
 1. **TSRS explanations**: Added 3-word descriptions per category + verbal overall score
 2. **Inundation fix**: Fixed direction (now always inland), added Haifa bay detail, max depth explanation
-3. **Real city boundaries**: Overpass API script — 11 real municipal polygons from OSM
+3. **Real city boundaries**: Overpass API bulk query — **554 real municipal polygons** (all Israeli municipalities)
 4. **Hillshade**: ESRI World Hillshade (free, no token) as overlay + default base
 5. **Modern design**: Dark glassmorphism theme (Rubik font, teal accent, frosted glass sidebar)
 6. **Police station icons**: Israel Police shield SVG at zoom 15+
@@ -97,7 +97,7 @@ tsrs-app/
 │   │   ├── operational.js      # Operational guidelines panel
 │   │   └── firebase-config.js  # Firebase integration
 │   └── data/                   # Pre-generated JSON
-│       ├── cities.json         # Real municipal boundaries from OSM
+│       ├── cities.json         # 554 real municipal boundaries from OSM
 │       ├── stations.json       # Sample station polygons (fallback)
 │       ├── coastline.json      # Mediterranean coastline
 │       └── inundation.json     # All wave heights 0.5-10m
