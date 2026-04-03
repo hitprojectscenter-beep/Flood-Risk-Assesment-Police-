@@ -190,7 +190,7 @@ const TSRSViz = (() => {
 
         // Build popup HTML
         const popupHTML = _buildPopupHTML(props);
-        layer.bindPopup(popupHTML, { maxWidth: 320, className: 'tsrs-popup-wrapper' }).openPopup();
+        layer.bindPopup(popupHTML, { maxWidth: 360, maxHeight: 450, className: 'tsrs-popup-wrapper' }).openPopup();
 
         // Update sidebar summary
         _updateSidebarSummary(props);
