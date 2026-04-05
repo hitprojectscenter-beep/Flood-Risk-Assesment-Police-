@@ -114,7 +114,8 @@ def generate_stations_geojson() -> Dict:
         r_raw = random.uniform(25, 80)  # inverted: high = less capacity
         i_raw = random.uniform(20, 70)  # inverted: high = less shelter
 
-        tsrs = h_raw * 0.35 + v_raw * 0.30 + o_raw * 0.20 + r_raw * 0.10 + i_raw * 0.05
+        # Israel 2026 calibrated weights
+        tsrs = h_raw * 0.25 + v_raw * 0.30 + o_raw * 0.15 + r_raw * 0.18 + i_raw * 0.12
 
         feature = {
             "type": "Feature",

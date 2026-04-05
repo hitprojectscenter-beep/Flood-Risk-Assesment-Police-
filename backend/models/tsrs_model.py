@@ -8,11 +8,11 @@ import numpy as np
 
 
 WEIGHTS = {
-    "H": 0.35,  # Hazard — inundation area percentage
-    "V": 0.30,  # Vulnerability — demographics
-    "O": 0.20,  # Operational bottleneck — evacuation difficulty
-    "R": 0.10,  # Response capacity (inverted: higher = less capacity = more risk)
-    "I": 0.05,  # Infrastructure (inverted: higher = less shelter = more risk)
+    "H": 0.25,  # Hazard — inundation area (reduced: similar exposure across IL coast)
+    "V": 0.30,  # Vulnerability — demographics (unchanged: critical differentiator in IL)
+    "O": 0.15,  # Operational bottleneck — evacuation difficulty (reduced)
+    "R": 0.18,  # Response capacity (increased: huge gaps between stations in IL)
+    "I": 0.12,  # Infrastructure (increased: shelters critical in periphery)
 }
 
 RISK_TIERS = [

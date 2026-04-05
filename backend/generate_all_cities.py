@@ -210,7 +210,8 @@ def generate_tsrs_scores(name: str, is_coastal: bool) -> dict:
     o = r(20, 70)
     ri = r(20, 75)
     ii = r(15, 65)
-    tsrs = h * 0.35 + v * 0.30 + o * 0.20 + ri * 0.10 + ii * 0.05
+    # Israel 2026 calibrated weights
+    tsrs = h * 0.25 + v * 0.30 + o * 0.15 + ri * 0.18 + ii * 0.12
     if tsrs >= 80: tier, tier_he = "CRITICAL", "קריטי"
     elif tsrs >= 60: tier, tier_he = "HIGH", "גבוה"
     elif tsrs >= 40: tier, tier_he = "MEDIUM", "בינוני"

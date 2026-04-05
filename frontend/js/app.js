@@ -31,7 +31,12 @@
         }
     } catch(e) { console.warn('Could not load CBS data:', e); }
 
-    // 7. Load initial data layers
+    // 7. Initialize weight sliders display
+    if (typeof updateWeightSliders === 'function') {
+        updateWeightSliders();
+    }
+
+    // 8. Load initial data layers
     try {
         await TSRSViz.loadStations(map, 'all');
         await TSRSInundation.loadInundation(map, 2.0);

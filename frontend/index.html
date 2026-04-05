@@ -60,13 +60,14 @@
 
             <div class="info-section">
                 <h3>📐 המודל — 5 מדדים משוקללים</h3>
-                <div class="info-formula">TSRS = (H × 0.35) + (V × 0.30) + (O × 0.20) + (R⁻¹ × 0.10) + (I⁻¹ × 0.05)</div>
+                <div class="info-formula" id="info-formula-display">TSRS = (H × 0.25) + (V × 0.30) + (O × 0.15) + (R⁻¹ × 0.18) + (I⁻¹ × 0.12)</div>
+                <p style="font-size:11px; color:var(--text-dim); margin-top:4px; text-align:center">* משקלים מכוילים למדינת ישראל 2026 — ניתנים לכוונון דרך הממשק</p>
                 <div class="info-grid">
-                    <div class="info-metric"><span class="info-weight">35%</span><strong>H — חשיפה פיזית</strong><br>קרבת חוף, אחוז הצפה, זמן גל</div>
+                    <div class="info-metric"><span class="info-weight">25%</span><strong>H — חשיפה פיזית</strong><br>קרבת חוף, אחוז הצפה, זמן גל</div>
                     <div class="info-metric"><span class="info-weight">30%</span><strong>V — פגיעות אוכלוסייה</strong><br>גיל, ניידות, מוסדות, מדד חברתי-כלכלי</div>
-                    <div class="info-metric"><span class="info-weight">20%</span><strong>O — עומס מבצעי</strong><br>צווארי בקבוק, צירי פינוי, ABM</div>
-                    <div class="info-metric"><span class="info-weight">10%</span><strong>R⁻¹ — גרעון משאבים</strong><br>ניידות, זמן תגובה, הכשרה</div>
-                    <div class="info-metric"><span class="info-weight">5%</span><strong>I⁻¹ — חוסן תשתית</strong><br>צירים חלופיים, מקלטים, DTN</div>
+                    <div class="info-metric"><span class="info-weight">15%</span><strong>O — עומס מבצעי</strong><br>צווארי בקבוק, צירי פינוי, ABM</div>
+                    <div class="info-metric"><span class="info-weight">18%</span><strong>R⁻¹ — גרעון משאבים</strong><br>ניידות, זמן תגובה, הכשרה</div>
+                    <div class="info-metric"><span class="info-weight">12%</span><strong>I⁻¹ — חוסן תשתית</strong><br>צירים חלופיים, מקלטים, DTN</div>
                 </div>
             </div>
 
@@ -136,6 +137,43 @@
                     </div>
                     <div id="wave-severity" class="severity-badge severity-medium">בינוני</div>
                 </div>
+            </div>
+
+            <!-- TSRS Weight Adjustment -->
+            <div class="sidebar-section">
+                <h3 class="section-title" id="section-weights">⚖️ משקלי מודל TSRS</h3>
+                <div class="weight-preset-btns">
+                    <button class="weight-preset active" onclick="TSRSWeights.resetToIsrael(); updateWeightSliders();" title="ברירת מחדל ישראלית">🇮🇱 ישראל</button>
+                    <button class="weight-preset" onclick="TSRSWeights.resetToInternational(); updateWeightSliders();" title="משקלים בינלאומיים">🌍 בינ"ל</button>
+                </div>
+                <div id="weight-sliders">
+                    <div class="weight-row">
+                        <span class="weight-label">H חשיפה</span>
+                        <input type="range" class="weight-slider" id="w-H" min="5" max="50" value="25" oninput="onWeightChange()">
+                        <span class="weight-val" id="wv-H">25%</span>
+                    </div>
+                    <div class="weight-row">
+                        <span class="weight-label">V פגיעות</span>
+                        <input type="range" class="weight-slider" id="w-V" min="5" max="50" value="30" oninput="onWeightChange()">
+                        <span class="weight-val" id="wv-V">30%</span>
+                    </div>
+                    <div class="weight-row">
+                        <span class="weight-label">O מבצעי</span>
+                        <input type="range" class="weight-slider" id="w-O" min="5" max="50" value="15" oninput="onWeightChange()">
+                        <span class="weight-val" id="wv-O">15%</span>
+                    </div>
+                    <div class="weight-row">
+                        <span class="weight-label">R⁻¹ משאבים</span>
+                        <input type="range" class="weight-slider" id="w-R" min="5" max="50" value="18" oninput="onWeightChange()">
+                        <span class="weight-val" id="wv-R">18%</span>
+                    </div>
+                    <div class="weight-row">
+                        <span class="weight-label">I⁻¹ תשתיות</span>
+                        <input type="range" class="weight-slider" id="w-I" min="5" max="50" value="12" oninput="onWeightChange()">
+                        <span class="weight-val" id="wv-I">12%</span>
+                    </div>
+                </div>
+                <div id="weight-formula" class="weight-formula"></div>
             </div>
 
             <!-- Layer Controls -->
@@ -215,17 +253,67 @@
         </main>
     </div>
 
-    <!-- Info Modal toggle (inline — needed before modules load) -->
+    <!-- Inline functions (needed before modules load) -->
     <script>
     function toggleInfoModal() {
         const modal = document.getElementById('info-modal');
         modal.classList.toggle('hidden');
     }
-    // Show on page load (auto-open)
     document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('info-modal');
         if (modal) modal.classList.remove('hidden');
     });
+
+    // Weight slider handlers
+    function onWeightChange() {
+        const weights = {
+            H: parseInt(document.getElementById('w-H').value) / 100,
+            V: parseInt(document.getElementById('w-V').value) / 100,
+            O: parseInt(document.getElementById('w-O').value) / 100,
+            R: parseInt(document.getElementById('w-R').value) / 100,
+            I: parseInt(document.getElementById('w-I').value) / 100,
+        };
+        if (typeof TSRSWeights !== 'undefined') {
+            TSRSWeights.setAll(weights);
+        }
+        updateWeightSliders();
+    }
+
+    function updateWeightSliders() {
+        if (typeof TSRSWeights === 'undefined') return;
+        const w = TSRSWeights.get();
+        const keys = ['H', 'V', 'O', 'R', 'I'];
+        keys.forEach(k => {
+            const slider = document.getElementById('w-' + k);
+            const label = document.getElementById('wv-' + k);
+            if (slider) slider.value = Math.round(w[k] * 100);
+            if (label) label.textContent = Math.round(w[k] * 100) + '%';
+        });
+        const formula = document.getElementById('weight-formula');
+        if (formula) formula.textContent = TSRSWeights.getFormulaString();
+
+        // Recalculate TSRS scores on the map
+        if (typeof TSRSViz !== 'undefined' && typeof TSRSMap !== 'undefined') {
+            recalculateTSRS();
+        }
+    }
+
+    function recalculateTSRS() {
+        const layer = TSRSViz.getStationsLayer();
+        if (!layer) return;
+        layer.eachLayer(l => {
+            if (!l.feature) return;
+            const p = l.feature.properties;
+            // Recalculate TSRS with new weights
+            p.tsrs_score = TSRSWeights.calculate(p.H_score, p.V_score, p.O_score, p.R_score, p.I_score);
+            const tier = TSRSWeights.getTier(p.tsrs_score);
+            p.risk_tier = tier.tier;
+            p.risk_tier_he = tier.he;
+            // Update polygon color
+            const color = TSRSViz.getTSRSColor(p.tsrs_score);
+            l.setStyle({ fillColor: color, color: color });
+        });
+    }
     </script>
 
     <!-- Leaflet JS -->
@@ -244,6 +332,7 @@
     <!-- App JS Modules -->
     <script src="js/i18n.js"></script>
     <script src="js/firebase-config.js"></script>
+    <script src="js/weights.js"></script>
     <script src="js/map.js"></script>
     <script src="js/tsrs.js"></script>
     <script src="js/controls.js"></script>

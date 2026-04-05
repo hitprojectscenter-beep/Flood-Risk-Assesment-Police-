@@ -249,6 +249,91 @@ body {
 .severity-high { background: rgba(249,115,22,0.15); color: #FB923C; border: 1px solid rgba(249,115,22,0.3); }
 .severity-extreme { background: rgba(239,68,68,0.15); color: #F87171; border: 1px solid rgba(239,68,68,0.3); }
 
+/* ===== Weight Sliders ===== */
+.weight-preset-btns {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.weight-preset {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--primary-mid);
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.weight-preset:hover, .weight-preset.active {
+    background: var(--accent);
+    color: var(--primary);
+    border-color: var(--accent);
+}
+
+.weight-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.weight-label {
+    width: 70px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.weight-slider {
+    flex: 1;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(148,163,184,0.2);
+    border-radius: 2px;
+    outline: none;
+}
+
+.weight-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--primary);
+    cursor: pointer;
+}
+
+.weight-val {
+    width: 30px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.weight-formula {
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: rgba(20,184,166,0.06);
+    border: 1px solid var(--border-accent);
+    border-radius: 6px;
+    font-size: 9px;
+    font-family: 'Courier New', monospace;
+    color: var(--accent);
+    text-align: center;
+    direction: ltr;
+}
+
 /* ===== Layer Toggles ===== */
 .layer-toggles {
     display: flex;
