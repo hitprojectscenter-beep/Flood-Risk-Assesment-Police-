@@ -13,18 +13,22 @@ GIS-based web application for assessing tsunami risk per police station territor
 - **Data Sources**: CBS demographic CSVs, OSM Overpass API (city boundaries, roads, buildings)
 - **Deployment**: Vercel (static) — `vercel.json` configured
 
-## TSRS Formula
+## TSRS Formula (Israel-Calibrated 2026)
 ```
-TSRS = H × 0.35 + V × 0.30 + O × 0.20 + R⁻¹ × 0.10 + I⁻¹ × 0.05
+TSRS = H × 0.25 + V × 0.30 + O × 0.15 + R⁻¹ × 0.18 + I⁻¹ × 0.12
 ```
 
-| Component | Hebrew | 3-Word Description | Weight |
-|-----------|--------|-------------------|--------|
-| H (Hazard) | סיכון הצפה | חשיפה לגלי צונאמי | 35% |
-| V (Vulnerability) | פגיעות | פגיעות דמוגרפית | 30% |
-| O (Operational) | צוואר בקבוק | קושי בפינוי | 20% |
-| R (Response) | תגובה | משאבי תגובה | 10% |
-| I (Infrastructure) | תשתיות | מבנים ומקלטים | 5% |
+| Component | Hebrew | 3-Word Description | Weight (IL) | Original |
+|-----------|--------|-------------------|-------------|----------|
+| H (Hazard) | סיכון הצפה | חשיפה לגלי צונאמי | **25%** | 35% |
+| V (Vulnerability) | פגיעות | פגיעות דמוגרפית | **30%** | 30% |
+| O (Operational) | צוואר בקבוק | קושי בפינוי | **15%** | 20% |
+| R (Response) | תגובה | משאבי תגובה | **18%** | 10% |
+| I (Infrastructure) | תשתיות | מבנים ומקלטים | **12%** | 5% |
+
+**Calibration rationale:** Israel has narrow coastline (uniform exposure → H ↓),
+huge resource gaps between central/peripheral stations (R ↑), limited shelters
+in periphery (I ↑). Weights are user-adjustable via interactive sliders.
 
 ### Score Interpretation
 | Score | Hebrew | English |
@@ -80,6 +84,60 @@ Replaced static polygon inundation layer with dynamic heatmap (Leaflet.heat):
 - Inland gradient factor (intensity decreases further from coast)
 - Dashed blue polygon outlines remain as context layer
 - Legend updated with gradient bar
+
+### Session 2 — Multilingual + CBS Data
+- Added i18n.js with 5 languages: Hebrew (RTL), English, Russian, French, Spanish
+- ~80 translation keys per language for full UI coverage
+- Language selector in header, persists to localStorage
+- LTR CSS overrides for non-Hebrew languages
+- Real CBS socioeconomic data: 202 cities with cluster (1-10) from CBS 2022
+- Cities filtered to only show those with CBS data
+- backend/extract_socioeconomic.py: parses CBS CSV (Windows-1255)
+
+### Session 2 — Layer Refactor
+- Removed inaccurate coastline layer
+- Renamed "תחנות משטרה" to "ערים" (cities layer = municipal boundaries)
+- Added real police stations from OSM (amenity=police) at zoom 12+
+- Israel Police shield SVG icon
+- Buildings symbology by flood depth: red/green/blue (submerged/safe/shelter)
+
+### Session 2 — Responsive Design
+- 5 breakpoints: 1023px, 767px, 600px, 480px, 360px
+- Mobile sidebar: collapsible overlay with hamburger toggle
+- Touch-friendly: 22px slider thumbs, 18px checkboxes
+- Info modal: 95vw on mobile, single-column metric grid
+- Operational panel: responsive grid (1/2/3 columns)
+- LTR direction overrides for non-Hebrew languages
+
+### Session 2 — Info Modal + Presentation
+- Auto-opens on app load with TSRS explanation
+- 6 sections: Problem, Formula, 5 Metrics, Application, Risk Tiers, Sources
+- "ℹ️ הסבר" button in header to reopen
+- Created 8-slide presentation (TSRS_Presentation_Improved.pptx)
+- Presenter guide Word document (TSRS_Presenter_Guide.docx)
+
+### Session 3 — Israel Weight Calibration
+Major calibration of TSRS weights for Israel 2026 conditions:
+- H reduced (35→25%): narrow Mediterranean coast, uniform exposure
+- V unchanged (30%): demographic vulnerability is critical differentiator
+- O reduced (20→15%): partly moved to Infrastructure
+- R increased (10→18%): huge resource gaps between central/peripheral stations
+- I increased (5→12%): vertical shelters critical in peripheral towns
+- NEW: frontend/js/weights.js — centralized weight config module
+- NEW: Interactive weight sliders in sidebar (5 sliders + 2 presets)
+- Real-time TSRS recalculation on the map when weights change
+- Auto-normalization to ensure weights sum to 100%
+
+### Session 3 — Documentation Sync + Spec Updates
+- Header CSS bug fix: .header-left missing flex layout
+- Improved mobile responsive for weight sliders
+- New presentation slide on weight calibration (slide 4)
+- Created 4 spec update docs (BRD/TDD × HE/EN):
+  - files_2/BRD_Updates_Hebrew.docx
+  - files_2/BRD_Updates_English.docx
+  - files_2/TDD_Updates_Hebrew.docx
+  - files_2/TDD_Updates_English.docx
+- Full sync of CLAUDE.md and Memory.md with current state
 
 ## Project Structure
 ```

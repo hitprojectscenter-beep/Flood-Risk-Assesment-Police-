@@ -168,15 +168,15 @@ add_text(slide3, 'המודל: 5 מדדים משוקללים', 0.8, 0.3, 11.7, 0.
 
 # Formula box
 add_rounded_rect(slide3, 1.0, 1.2, 11.3, 0.7, DARK_BLUE, TEAL)
-add_text(slide3, 'TSRS = (H × 0.35) + (V × 0.30) + (O × 0.20) + (R⁻¹ × 0.10) + (I⁻¹ × 0.05)', 1.2, 1.25, 10.9, 0.6, size=18, color=TEAL, bold=True, align=PP_ALIGN.CENTER, font='Courier New')
+add_text(slide3, 'TSRS = (H × 0.25) + (V × 0.30) + (O × 0.15) + (R⁻¹ × 0.18) + (I⁻¹ × 0.12)', 1.2, 1.25, 10.9, 0.6, size=18, color=TEAL, bold=True, align=PP_ALIGN.CENTER, font='Courier New')
 
-# 5 component cards
+# 5 component cards (Israel-calibrated weights)
 components = [
-    ('H', '35%', 'חשיפה פיזית', 'קרבת חוף, % הצפה, זמן גל', RED),
+    ('H', '25%', 'חשיפה פיזית', 'קרבת חוף, % הצפה, זמן גל', RED),
     ('V', '30%', 'פגיעות אוכלוסייה', 'גיל, ניידות, מוסדות, מדד ח"כ', RGBColor(0x8B, 0x5C, 0xF6)),
-    ('O', '20%', 'עומס מבצעי', 'ABM, צווארי בקבוק, צירי פינוי', ORANGE),
-    ('R⁻¹', '10%', 'גרעון משאבים', 'ניידות, זמן תגובה, KYT', GREEN),
-    ('I⁻¹', '5%', 'חוסן תשתית', 'צירים חלופיים, מקלטים, DTN', BLUE),
+    ('O', '15%', 'עומס מבצעי', 'ABM, צווארי בקבוק, צירי פינוי', ORANGE),
+    ('R⁻¹', '18%', 'גרעון משאבים', 'ניידות, זמן תגובה, KYT', GREEN),
+    ('I⁻¹', '12%', 'חוסן תשתית', 'צירים חלופיים, מקלטים, DTN', BLUE),
 ]
 
 x_pos = 0.5
@@ -200,7 +200,79 @@ for score, label, color in tiers:
     tx += 2.0
 
 # =====================================================
-# SLIDE 4: Process Diagram (INPUT → PROCESSING → OUTPUT)
+# SLIDE 4: Israel Weight Calibration (NEW)
+# =====================================================
+slide_iw = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide_iw, NAVY)
+add_rect(slide_iw, 0, 0, 13.333, 0.06, TEAL)
+
+add_text(slide_iw, '⚖️ כיול משקלים — התאמה לישראל 2026', 0.8, 0.3, 11.7, 0.7, size=30, color=TEAL, bold=True)
+
+# Comparison title
+add_text(slide_iw, 'השוואה: בינלאומי vs. ישראל', 0.5, 1.15, 7.5, 0.45, size=16, color=WHITE, bold=True)
+
+# Comparison table card
+add_rounded_rect(slide_iw, 0.5, 1.65, 7.5, 4.4, DARK_BLUE, RGBColor(0x33, 0x41, 0x55))
+
+# Table headers
+add_text(slide_iw, 'מדד', 0.7, 1.75, 1.4, 0.35, size=12, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide_iw, 'בינלאומי', 2.1, 1.75, 1.5, 0.35, size=12, color=LIGHT_GRAY, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide_iw, 'ישראל', 3.6, 1.75, 1.4, 0.35, size=12, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide_iw, 'שינוי', 5.0, 1.75, 1.4, 0.35, size=12, color=WHITE, bold=True, align=PP_ALIGN.CENTER)
+add_text(slide_iw, 'נימוק', 6.4, 1.75, 1.5, 0.35, size=12, color=WHITE, bold=True, align=PP_ALIGN.CENTER)
+
+# Separator line
+add_rect(slide_iw, 0.7, 2.13, 7.1, 0.02, TEAL)
+
+# Table rows
+weight_rows = [
+    ('H', 'חשיפה', '35%', '25%', '↓ 10', 'חוף צר', RED),
+    ('V', 'פגיעות', '30%', '30%', '= 0', 'מבדיל', RGBColor(0x8B, 0x5C, 0xF6)),
+    ('O', 'מבצעי', '20%', '15%', '↓ 5', 'עבר ל-I', ORANGE),
+    ('R⁻¹', 'משאבים', '10%', '18%', '↑ 8', 'פערים', GREEN),
+    ('I⁻¹', 'תשתית', '5%', '12%', '↑ 7', 'פריפריה', BLUE),
+]
+
+ry = 2.25
+for key, name, intl, isr, change, why, color in weight_rows:
+    # Key + name
+    add_text(slide_iw, f'{key} {name}', 0.7, ry, 1.4, 0.35, size=12, color=color, bold=True, align=PP_ALIGN.CENTER)
+    # International weight
+    add_text(slide_iw, intl, 2.1, ry, 1.5, 0.35, size=12, color=LIGHT_GRAY, align=PP_ALIGN.CENTER)
+    # Israel weight
+    add_text(slide_iw, isr, 3.6, ry, 1.4, 0.35, size=14, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
+    # Change
+    change_color = RED if '↓' in change else (GREEN if '↑' in change else WHITE)
+    add_text(slide_iw, change, 5.0, ry, 1.4, 0.35, size=12, color=change_color, bold=True, align=PP_ALIGN.CENTER)
+    # Why
+    add_text(slide_iw, why, 6.4, ry, 1.5, 0.35, size=11, color=VERY_LIGHT, align=PP_ALIGN.CENTER)
+    ry += 0.65
+
+# === Right column: Insight box ===
+add_rounded_rect(slide_iw, 8.3, 1.15, 4.7, 4.9, DARK_BLUE, TEAL)
+add_text(slide_iw, '💡 למה ישראל שונה?', 8.5, 1.25, 4.3, 0.45, size=18, color=TEAL, bold=True)
+
+insights = [
+    ('🏖️', 'רצועת חוף צרה', 'רק 190 ק"מ ים תיכון — כל הערים החופיות באותה רמת חשיפה בקירוב'),
+    ('👥', 'פערים דמוגרפיים', 'אשכול 1-2 (פריפריה) מול 8-10 (מרכז) — פגיעות שונה דרמטית'),
+    ('🚓', 'פערי משאבים', 'תחנה במרכז ת״א מול תחנה בפריפריה: פי 3-5 הבדל בכוח אדם'),
+    ('🏢', 'תשתיות מוגבלות', 'מקלטים אנכיים רק בערים גדולות — בפריפריה אין כלל'),
+]
+
+iy = 1.9
+for icon, title, desc in insights:
+    add_text(slide_iw, icon, 8.5, iy, 0.5, 0.35, size=14)
+    add_text(slide_iw, title, 9.0, iy, 3.8, 0.35, size=13, color=WHITE, bold=True)
+    add_text(slide_iw, desc, 8.5, iy + 0.35, 4.3, 0.6, size=10, color=LIGHT_GRAY)
+    iy += 1.05
+
+# Bottom: User-adjustable feature note
+add_rounded_rect(slide_iw, 0.5, 6.25, 12.3, 0.9, RGBColor(0x15, 0x20, 0x35), TEAL)
+add_text(slide_iw, '🎛️  סליידרים אינטראקטיביים', 0.7, 6.3, 11.9, 0.35, size=13, color=TEAL, bold=True)
+add_text(slide_iw, 'המשתמש יכול לכוונן את המשקלים בזמן אמת ולראות את ההשפעה על המפה. שני פריסטים: 🇮🇱 ישראל (ברירת מחדל) | 🌍 בינלאומי. הציונים מתעדכנים מיידית עם שינוי המשקלים.', 0.7, 6.65, 11.9, 0.5, size=11, color=VERY_LIGHT)
+
+# =====================================================
+# SLIDE 5: Process Diagram (INPUT → PROCESSING → OUTPUT)
 # =====================================================
 slide4 = prs.slides.add_slide(prs.slide_layouts[6])
 add_bg(slide4, NAVY)
@@ -410,4 +482,4 @@ add_text(slide7, '"מידע גאוגרפי מציל חיים — הכנה מוק
 output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'TSRS_Presentation_Improved.pptx')
 prs.save(output_path)
 print(f'Presentation saved to: {output_path}')
-print(f'Slides: 7')
+print(f'Slides: {len(prs.slides)}')

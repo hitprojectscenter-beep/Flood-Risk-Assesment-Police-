@@ -125,13 +125,78 @@
 - Updated legend with gradient bar ("מפת חום — הצפה")
 - Verified: heatmap dynamically responds to wave slider (tested 2.0m → 7.0m)
 
+### Phase 9: Multilingual i18n (Session 2)
+- Created `frontend/js/i18n.js` with 5 languages (HE, EN, RU, FR, ES)
+- ~80 translation keys per language
+- Language selector buttons in header
+- localStorage persistence
+- LTR CSS overrides for non-Hebrew languages
+- All sidebar/legend/popup text translatable via t(key)
+
+### Phase 10: Real CBS Socioeconomic Data
+- Created `backend/extract_socioeconomic.py` parser
+- Extracts 202 cities with real cluster (1-10) from CBS CSV
+- Output: `frontend/data/socioeconomic.json` (19.6 KB)
+- Ranking examples: Jerusalem=2, Tel Aviv=8, Haifa=7, Eilat=6
+- Income and car ownership derived from cluster
+
+### Phase 11: Layer Refactor
+- Removed inaccurate coastline layer entirely
+- Renamed "תחנות משטרה" (Police Stations) → "ערים" (Cities)
+- Added real police stations from OSM Overpass API (amenity=police)
+- Israel Police shield SVG icon at zoom 12+
+- Filtered cities to only show those with CBS data
+- Buildings symbology by flood depth (red/green/blue)
+
+### Phase 12: Responsive Design
+- 5 CSS breakpoints: 1023px, 767px, 600px, 480px, 360px
+- Mobile sidebar: collapsible overlay with hamburger button
+- Touch-friendly: 22px slider thumbs, 18px checkboxes
+- Info modal responsive: 95vw, single-column on mobile
+- Operational panel responsive grid
+
+### Phase 13: Info Modal + Presentation
+- Created info modal with 6 sections (auto-opens on load)
+- "ℹ️ הסבר" button in header
+- Created 8-slide presentation with python-pptx
+- Created Hebrew presenter guide Word document
+- Both files in `tsrs-app/` and `files_2/`
+
+### Phase 14: Israel Weight Calibration + Sliders
+- NEW: `frontend/js/weights.js` centralized module
+- Israel-calibrated defaults: H=25%, V=30%, O=15%, R=18%, I=12%
+- 2 presets: 🇮🇱 Israel | 🌍 International (Wood & Jones 2015)
+- 5 interactive sliders (range 5-50%, step 1%)
+- Auto-normalization to sum 100%
+- Real-time TSRS recalculation on map polygons
+- Dynamic formula display
+
+### Phase 15: Documentation Sync + Spec Updates
+- Fixed critical bug: `.header-left` had no CSS (flex layout missing)
+- Info button now visible at all screen sizes (was hidden ≤360px)
+- Added mobile-specific styles for weight sliders
+- Updated presentation: weights in slide 3, NEW slide 4 (calibration)
+- Created 4 spec appendix docs:
+  - `files_2/BRD_Updates_Hebrew.docx`
+  - `files_2/BRD_Updates_English.docx`
+  - `files_2/TDD_Updates_Hebrew.docx`
+  - `files_2/TDD_Updates_English.docx`
+- Full rewrite of CLAUDE.md and Memory.md to reflect current state
+
 ## Git History
 1. `Initial commit` — Full app (25 files)
 2. `Add Vercel deployment config` — vercel.json + production fallback
 3. `Fix OSM overlay layers` — Overpass API roads/buildings
 4. `Major redesign` — Dark glassmorphism, TSRS explanations, hillshade
 5. `Add real municipal boundaries` — 11 cities from OSM
-5b. `Add ALL 554 Israeli municipal boundaries` — bulk Overpass query (admin_level 7+8)
+5b. `Add ALL 554 Israeli municipal boundaries` — bulk Overpass query
 6. `Add police icons, building symbology, demographic profiling`
 7. `Fix 5 critical bugs` — Init order, syntax, demographics, popup close
 8. `Add heatmap inundation visualization` — Leaflet.heat dynamic heatmap
+9. `Add multilingual i18n + real CBS socioeconomic data`
+10. `Major layer refactor: real police stations, rename to cities, fix data`
+11. `Add info/about modal with TSRS explanation`
+12. `Add responsive design for mobile phones and tablets`
+13. `Add ALL 554 Israeli municipal boundaries from OSM`
+14. `Israel-calibrated TSRS weights + interactive weight sliders`
+15. `Documentation sync + spec updates + header fix` (current)

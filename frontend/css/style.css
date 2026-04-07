@@ -69,6 +69,14 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 .logo-icon { font-size: 26px; }
@@ -1075,6 +1083,10 @@ body {
     .header-datetime { display: none; }
     .info-btn { font-size: 11px; padding: 3px 8px; }
 
+    /* Weight sliders tablet */
+    .weight-label { width: 65px; font-size: 9px; }
+    .weight-formula { font-size: 9px; }
+
     .info-modal-content {
         max-width: 95vw;
         padding: 18px 20px;
@@ -1120,6 +1132,15 @@ body {
     .toggle-label { padding: 6px; font-size: 13px; }
     .toggle-label input[type="checkbox"] { width: 18px; height: 18px; }
 
+    /* Weight sliders mobile */
+    .weight-row { gap: 4px; margin-bottom: 6px; }
+    .weight-label { width: 60px; font-size: 9px; }
+    .weight-val { width: 28px; font-size: 9px; }
+    .weight-slider { height: 4px; }
+    .weight-slider::-webkit-slider-thumb { width: 18px; height: 18px; }
+    .weight-formula { font-size: 8px; padding: 4px 6px; }
+    .weight-preset { font-size: 10px; padding: 3px 6px; }
+
     .legend-item { font-size: 10px; }
     .legend-color { width: 16px; height: 10px; }
 
@@ -1164,6 +1185,9 @@ body {
     .header-titles h1 { font-size: 11px; }
     .lang-selector { gap: 1px; }
     .lang-btn { font-size: 8px; padding: 1px 4px; }
-    .info-btn { display: none; } /* Use modal on load instead */
+    .info-btn { font-size: 9px; padding: 2px 5px; }
     .op-grid { grid-template-columns: 1fr; }
+    .weight-label { width: 50px; font-size: 8px; }
+    .weight-val { width: 26px; font-size: 8px; }
+    .weight-formula { font-size: 7px; padding: 3px 4px; }
 }
