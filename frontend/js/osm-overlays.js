@@ -374,10 +374,10 @@ const TSRSOverlays = (() => {
     }
 
     /**
-     * Create pseudo-3D buildings using stacked polygons.
-     * Each building gets multiple layers offset by elevation to simulate extrusion.
-     * Height = building:levels * 3m (default 2 levels if unknown).
-     * Color gradient from dark base to lighter roof based on height.
+     * Create pseudo-3D buildings as CLOSED BOXES.
+     * Each building rendered as: base footprint + 4 side wall panels + roof.
+     * Wall panels are quadrilaterals connecting each base edge to its roof edge.
+     * Height = building:levels * 3m. Offset direction: NW (isometric).
      */
     function _createPseudo3DLayer(geojson) {
         const group = L.layerGroup();
@@ -385,91 +385,91 @@ const TSRSOverlays = (() => {
         const maxFloodDepth = waveHeight * 0.7;
 
         const sorted = geojson.features
-            .filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'))
-            .sort((a, b) => {
-                // Sort south-to-north so northern buildings render on top (isometric illusion)
-                const aLat = _getFeatureCentroidLat(a);
-                const bLat = _getFeatureCentroidLat(b);
-                return aLat - bLat;
-            });
+            .filter(f => f.geometry && f.geometry.type === 'Polygon')
+            .sort((a, b) => _getFeatureCentroidLat(a) - _getFeatureCentroidLat(b));
 
         sorted.forEach(feature => {
             const levels = _getBuildingLevels(feature);
             const heightM = levels * 3;
+            const ring = feature.geometry.coordinates[0];
+            if (!ring || ring.length < 4) return;
 
-            // Color based on height vs flood depth
-            let wallColor, roofColor, borderColor;
+            // Colors by flood status
+            let baseColor, wallColorLight, wallColorDark, roofColor, borderColor;
             if (heightM <= maxFloodDepth) {
-                // Submerged — red tones
-                wallColor = '#B91C1C';
-                roofColor = '#EF4444';
-                borderColor = '#7F1D1D';
+                baseColor = '#7F1D1D'; wallColorLight = '#DC2626'; wallColorDark = '#991B1B';
+                roofColor = '#EF4444'; borderColor = '#7F1D1D';
             } else if (levels >= 4) {
-                // Potential shelter — blue tones
-                wallColor = '#1D4ED8';
-                roofColor = '#3B82F6';
-                borderColor = '#1E3A8A';
+                baseColor = '#1E3A8A'; wallColorLight = '#2563EB'; wallColorDark = '#1D4ED8';
+                roofColor = '#3B82F6'; borderColor = '#1E3A8A';
             } else {
-                // Safe — green tones
-                wallColor = '#059669';
-                roofColor = '#10B981';
-                borderColor = '#047857';
+                baseColor = '#047857'; wallColorLight = '#059669'; wallColorDark = '#065F46';
+                roofColor = '#10B981'; borderColor = '#047857';
             }
 
-            // Extrusion offset: each level shifts the polygon slightly NW (isometric-like)
-            const offsetPerLevel = 0.000015; // ~1.5m in degrees at Israel latitudes
-            const maxOffset = levels * offsetPerLevel;
+            // Isometric offset per level (NW direction)
+            const ox = -0.000015 * levels; // longitude offset (west)
+            const oy = 0.000015 * levels;  // latitude offset (north)
 
-            // Shadow polygon (bottom — dark, wide)
-            const shadow = L.geoJSON(feature, {
-                style: () => ({
-                    fillColor: '#000000',
-                    fillOpacity: 0.15,
-                    color: 'transparent',
-                    weight: 0,
-                }),
-                coordsToLatLng: (coords) => L.latLng(coords[1] - maxOffset * 0.5, coords[0] + maxOffset * 0.5),
-            });
-            group.addLayer(shadow);
+            // 1. BASE footprint (ground level — dark)
+            const basePoly = L.polygon(
+                ring.map(c => [c[1], c[0]]),
+                { fillColor: baseColor, fillOpacity: 0.6, color: borderColor, weight: 1, opacity: 0.7 }
+            );
+            group.addLayer(basePoly);
 
-            // Wall polygon (middle — darker color, offset halfway)
-            const wallOffset = maxOffset * 0.5;
-            const wall = L.geoJSON(feature, {
-                style: () => ({
-                    fillColor: wallColor,
-                    fillOpacity: 0.7,
+            // 2. WALL panels — one quad per edge connecting base vertex to roof vertex
+            for (let i = 0; i < ring.length - 1; i++) {
+                const b1 = ring[i];      // base vertex i
+                const b2 = ring[i + 1];  // base vertex i+1
+                const r1 = [b1[0] + ox, b1[1] + oy]; // roof vertex i
+                const r2 = [b2[0] + ox, b2[1] + oy]; // roof vertex i+1
+
+                // Determine wall brightness by face direction
+                const edgeDx = b2[0] - b1[0];
+                const edgeDy = b2[1] - b1[1];
+                // Faces pointing south/east are "lit", north/west are "shadow"
+                const isLit = (edgeDx > 0 || edgeDy < 0);
+                const wColor = isLit ? wallColorLight : wallColorDark;
+
+                const wallQuad = L.polygon([
+                    [b1[1], b1[0]],  // base-left
+                    [b2[1], b2[0]],  // base-right
+                    [r2[1], r2[0]],  // roof-right
+                    [r1[1], r1[0]],  // roof-left
+                ], {
+                    fillColor: wColor,
+                    fillOpacity: 0.75,
                     color: borderColor,
-                    weight: 1,
-                    opacity: 0.8,
-                }),
-                coordsToLatLng: (coords) => L.latLng(coords[1] + wallOffset, coords[0] - wallOffset),
-            });
-            group.addLayer(wall);
+                    weight: 0.5,
+                    opacity: 0.6,
+                });
+                group.addLayer(wallQuad);
+            }
 
-            // Roof polygon (top — lighter color, full offset)
-            const roof = L.geoJSON(feature, {
-                style: () => ({
+            // 3. ROOF polygon (top — lighter, full offset)
+            const name = feature.properties.name || feature.properties.building || '';
+            const status = heightM <= maxFloodDepth ? '🔴 מתחת לעומק הצפה' :
+                           levels >= 4 ? '🔵 מקלט פוטנציאלי' : '🟢 מעל עומק הצפה';
+
+            const roofPoly = L.polygon(
+                ring.map(c => [c[1] + oy, c[0] + ox]),
+                {
                     fillColor: roofColor,
-                    fillOpacity: 0.85,
+                    fillOpacity: 0.9,
                     color: borderColor,
                     weight: 1.5,
                     opacity: 0.9,
-                }),
-                coordsToLatLng: (coords) => L.latLng(coords[1] + maxOffset, coords[0] - maxOffset),
-                onEachFeature: (f, layer) => {
-                    const name = f.properties.name || f.properties.building || '';
-                    const status = heightM <= maxFloodDepth ? '🔴 מתחת לעומק הצפה' :
-                                   levels >= 4 ? '🔵 מקלט פוטנציאלי' : '🟢 מעל עומק הצפה';
-                    layer.bindTooltip(
-                        `<b>${name || 'מבנה'}</b><br>` +
-                        `🏢 ${levels} קומות (~${heightM} מ')<br>` +
-                        `${status}<br>` +
-                        `📐 גובה מוערך: ${heightM} מ' (${levels}×3)`,
-                        { direction: 'top', sticky: true }
-                    );
-                },
-            });
-            group.addLayer(roof);
+                }
+            );
+            roofPoly.bindTooltip(
+                `<b>${name || 'מבנה'}</b><br>` +
+                `🏢 ${levels} קומות (~${heightM} מ')<br>` +
+                `${status}<br>` +
+                `📐 גובה: ${heightM} מ' (${levels}×3)`,
+                { direction: 'top', sticky: true }
+            );
+            group.addLayer(roofPoly);
         });
 
         return group;
