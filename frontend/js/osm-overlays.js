@@ -7,15 +7,19 @@ const TSRSOverlays = (() => {
     // --- State ---
     let roadsLayer = null;
     let buildingsLayer = null;
+    let buildings3DLayer = null;
     let policeLayer = null;
     let isRoadsEnabled = false;
     let isBuildingsEnabled = false;
+    let isBuildings3DEnabled = false;
     let isPoliceEnabled = false;
     let roadsAbort = null;
     let buildingsAbort = null;
+    let buildings3DAbort = null;
     let policeAbort = null;
     let lastRoadsBounds = null;
     let lastBuildingsBounds = null;
+    let lastBuildings3DBounds = null;
     let lastPoliceBounds = null;
     let debounceTimer = null;
     let _map = null;
@@ -104,6 +108,17 @@ const TSRSOverlays = (() => {
         }
     }
 
+    function setBuildings3DVisible(map, visible) {
+        if (!_map && map) { _map = map; _ensurePanes(map); }
+        isBuildings3DEnabled = visible;
+        if (visible) {
+            _loadBuildings3D();
+        } else {
+            if (buildings3DLayer && _map) { _map.removeLayer(buildings3DLayer); buildings3DLayer = null; }
+            lastBuildings3DBounds = null;
+        }
+    }
+
     function setPoliceVisible(map, visible) {
         if (!_map && map) { _map = map; _ensurePanes(map); }
         isPoliceEnabled = visible;
@@ -126,6 +141,8 @@ const TSRSOverlays = (() => {
             zoom >= ROADS_ZOOM.min, ROADS_ZOOM.min);
         _setCheckboxEnabled('layer-buildings', 'label-buildings', 'buildings-zoom-hint',
             zoom >= BUILDINGS_ZOOM.min, BUILDINGS_ZOOM.min);
+        _setCheckboxEnabled('layer-buildings-3d', 'label-buildings-3d', 'buildings-3d-zoom-hint',
+            zoom >= BUILDINGS_ZOOM.min, BUILDINGS_ZOOM.min);
 
         // Remove layers if zoom went below range
         if (zoom < POLICE_ZOOM.min && policeLayer) {
@@ -142,6 +159,11 @@ const TSRSOverlays = (() => {
             _map.removeLayer(buildingsLayer);
             buildingsLayer = null;
             lastBuildingsBounds = null;
+        }
+        if (zoom < BUILDINGS_ZOOM.min && buildings3DLayer) {
+            _map.removeLayer(buildings3DLayer);
+            buildings3DLayer = null;
+            lastBuildings3DBounds = null;
         }
     }
 
@@ -164,6 +186,7 @@ const TSRSOverlays = (() => {
             if (checkboxId === 'layer-police-osm') isPoliceEnabled = false;
             if (checkboxId === 'layer-roads') isRoadsEnabled = false;
             if (checkboxId === 'layer-buildings') isBuildingsEnabled = false;
+            if (checkboxId === 'layer-buildings-3d') isBuildings3DEnabled = false;
         }
     }
 
@@ -175,6 +198,7 @@ const TSRSOverlays = (() => {
             if (isPoliceEnabled) _loadPolice();
             if (isRoadsEnabled) _loadRoads();
             if (isBuildingsEnabled) _loadBuildings();
+            if (isBuildings3DEnabled) _loadBuildings3D();
         }, 500);
     }
 
@@ -302,6 +326,163 @@ const TSRSOverlays = (() => {
             if (e.name !== 'AbortError') console.warn('Buildings load error:', e.message);
         } finally {
             if (label) label.classList.remove('layer-loading');
+        }
+    }
+
+    // ========== Internal: Load 3D Buildings ==========
+
+    async function _loadBuildings3D() {
+        const zoom = _map.getZoom();
+        if (zoom < BUILDINGS_ZOOM.min) return;
+
+        const bounds = _map.getBounds();
+        if (_isBoundsContained(bounds, lastBuildings3DBounds)) return;
+        if (_boundsArea(bounds) > 0.02) return;
+
+        const label = document.getElementById('label-buildings-3d');
+        if (label) label.classList.add('layer-loading');
+
+        if (buildings3DAbort) buildings3DAbort.abort();
+        buildings3DAbort = new AbortController();
+
+        try {
+            const bbox = _toBBoxStr(bounds);
+            const query = `[out:json][timeout:15];(way["building"](${bbox});relation["building"](${bbox}););out geom;`;
+            const data = await _queryOverpass(query, buildings3DAbort.signal);
+            if (!data) return;
+
+            const geojson = osmtogeojson(data);
+
+            if (buildings3DLayer) _map.removeLayer(buildings3DLayer);
+
+            // Try OSMBuildings classic (if available)
+            if (typeof OSMBuildings !== 'undefined') {
+                buildings3DLayer = new OSMBuildings(_map).set(geojson);
+            } else {
+                // Fallback: CSS-based pseudo-3D extrusion using GeoJSON
+                buildings3DLayer = _createPseudo3DLayer(geojson);
+                buildings3DLayer.addTo(_map);
+            }
+
+            lastBuildings3DBounds = _expandBounds(bounds, 0.2);
+            console.log(`3D buildings loaded: ${geojson.features.length} features`);
+        } catch (e) {
+            if (e.name !== 'AbortError') console.warn('3D buildings load error:', e.message);
+        } finally {
+            if (label) label.classList.remove('layer-loading');
+        }
+    }
+
+    /**
+     * Create pseudo-3D buildings using stacked polygons.
+     * Each building gets multiple layers offset by elevation to simulate extrusion.
+     * Height = building:levels * 3m (default 2 levels if unknown).
+     * Color gradient from dark base to lighter roof based on height.
+     */
+    function _createPseudo3DLayer(geojson) {
+        const group = L.layerGroup();
+        const waveHeight = typeof TSRSControls !== 'undefined' ? TSRSControls.getWaveHeight() : 2.0;
+        const maxFloodDepth = waveHeight * 0.7;
+
+        const sorted = geojson.features
+            .filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'))
+            .sort((a, b) => {
+                // Sort south-to-north so northern buildings render on top (isometric illusion)
+                const aLat = _getFeatureCentroidLat(a);
+                const bLat = _getFeatureCentroidLat(b);
+                return aLat - bLat;
+            });
+
+        sorted.forEach(feature => {
+            const levels = _getBuildingLevels(feature);
+            const heightM = levels * 3;
+
+            // Color based on height vs flood depth
+            let wallColor, roofColor, borderColor;
+            if (heightM <= maxFloodDepth) {
+                // Submerged — red tones
+                wallColor = '#B91C1C';
+                roofColor = '#EF4444';
+                borderColor = '#7F1D1D';
+            } else if (levels >= 4) {
+                // Potential shelter — blue tones
+                wallColor = '#1D4ED8';
+                roofColor = '#3B82F6';
+                borderColor = '#1E3A8A';
+            } else {
+                // Safe — green tones
+                wallColor = '#059669';
+                roofColor = '#10B981';
+                borderColor = '#047857';
+            }
+
+            // Extrusion offset: each level shifts the polygon slightly NW (isometric-like)
+            const offsetPerLevel = 0.000015; // ~1.5m in degrees at Israel latitudes
+            const maxOffset = levels * offsetPerLevel;
+
+            // Shadow polygon (bottom — dark, wide)
+            const shadow = L.geoJSON(feature, {
+                style: () => ({
+                    fillColor: '#000000',
+                    fillOpacity: 0.15,
+                    color: 'transparent',
+                    weight: 0,
+                }),
+                coordsToLatLng: (coords) => L.latLng(coords[1] - maxOffset * 0.5, coords[0] + maxOffset * 0.5),
+            });
+            group.addLayer(shadow);
+
+            // Wall polygon (middle — darker color, offset halfway)
+            const wallOffset = maxOffset * 0.5;
+            const wall = L.geoJSON(feature, {
+                style: () => ({
+                    fillColor: wallColor,
+                    fillOpacity: 0.7,
+                    color: borderColor,
+                    weight: 1,
+                    opacity: 0.8,
+                }),
+                coordsToLatLng: (coords) => L.latLng(coords[1] + wallOffset, coords[0] - wallOffset),
+            });
+            group.addLayer(wall);
+
+            // Roof polygon (top — lighter color, full offset)
+            const roof = L.geoJSON(feature, {
+                style: () => ({
+                    fillColor: roofColor,
+                    fillOpacity: 0.85,
+                    color: borderColor,
+                    weight: 1.5,
+                    opacity: 0.9,
+                }),
+                coordsToLatLng: (coords) => L.latLng(coords[1] + maxOffset, coords[0] - maxOffset),
+                onEachFeature: (f, layer) => {
+                    const name = f.properties.name || f.properties.building || '';
+                    const status = heightM <= maxFloodDepth ? '🔴 מתחת לעומק הצפה' :
+                                   levels >= 4 ? '🔵 מקלט פוטנציאלי' : '🟢 מעל עומק הצפה';
+                    layer.bindTooltip(
+                        `<b>${name || 'מבנה'}</b><br>` +
+                        `🏢 ${levels} קומות (~${heightM} מ')<br>` +
+                        `${status}<br>` +
+                        `📐 גובה מוערך: ${heightM} מ' (${levels}×3)`,
+                        { direction: 'top', sticky: true }
+                    );
+                },
+            });
+            group.addLayer(roof);
+        });
+
+        return group;
+    }
+
+    function _getFeatureCentroidLat(feature) {
+        try {
+            const coords = feature.geometry.type === 'Polygon' ?
+                feature.geometry.coordinates[0] :
+                feature.geometry.coordinates[0][0];
+            return coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+        } catch (e) {
+            return 0;
         }
     }
 
@@ -443,5 +624,5 @@ const TSRSOverlays = (() => {
         return outer.contains(inner);
     }
 
-    return { init, setRoadsVisible, setBuildingsVisible, setPoliceVisible };
+    return { init, setRoadsVisible, setBuildingsVisible, setBuildings3DVisible, setPoliceVisible };
 })();

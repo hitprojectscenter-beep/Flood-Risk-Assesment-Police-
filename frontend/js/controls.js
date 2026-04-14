@@ -93,6 +93,12 @@ const TSRSControls = (() => {
                     TSRSOverlays.setBuildingsVisible(map, checked);
                 }
             },
+            'layer-buildings-3d': () => {
+                if (typeof TSRSOverlays !== 'undefined') {
+                    const checked = document.getElementById('layer-buildings-3d').checked;
+                    TSRSOverlays.setBuildings3DVisible(map, checked);
+                }
+            },
             'layer-hillshade': () => {
                 const checked = document.getElementById('layer-hillshade').checked;
                 if (!TSRSControls._hillshadeLayer) {
@@ -100,7 +106,7 @@ const TSRSControls = (() => {
                         'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
                             attribution: '© ESRI Hillshade',
                             maxZoom: 18,
-                            opacity: 0.35,
+                            opacity: 0.55,
                         }
                     );
                 }

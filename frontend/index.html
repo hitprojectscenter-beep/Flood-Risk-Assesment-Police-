@@ -198,6 +198,10 @@
                         <input type="checkbox" id="layer-buildings" disabled> <span id="label-text-buildings">🏗️ מבנים</span>
                         <span class="zoom-hint" id="buildings-zoom-hint">(זום 15+ נדרש)</span>
                     </label>
+                    <label class="toggle-label layer-disabled" id="label-buildings-3d">
+                        <input type="checkbox" id="layer-buildings-3d" disabled> <span id="label-text-buildings-3d">🏢 מבנים תלת-מימד</span>
+                        <span class="zoom-hint" id="buildings-3d-zoom-hint">(זום 15+ נדרש)</span>
+                    </label>
                     <label class="toggle-label">
                         <input type="checkbox" id="layer-hillshade"> <span id="label-text-hillshade">⛰️ תבליט</span>
                     </label>
@@ -324,6 +328,9 @@
 
     <!-- Leaflet Heatmap plugin -->
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <!-- OSM Buildings 3D -->
+    <script src="https://cdn.osmbuildings.org/classic/0.2.2b/OSMBuildings-Leaflet.js"></script>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>

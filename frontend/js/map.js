@@ -67,16 +67,21 @@ const TSRSMap = (() => {
 
         // === Hillshade Overlays ===
 
-        // ESRI World Hillshade (free, no token)
+        // ESRI World Hillshade (free, no token) — enhanced for terrain visibility
+        map.createPane('hillshadePane');
+        map.getPane('hillshadePane').style.zIndex = 250;
+        map.getPane('hillshadePane').style.mixBlendMode = 'multiply';
+
         const esriHillshade = L.tileLayer(
             'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
                 attribution: '© ESRI Hillshade',
                 maxZoom: 18,
-                opacity: 0.35,
+                opacity: 0.55,
+                pane: 'hillshadePane',
             }
         );
 
-        // Combined: OSM + Hillshade blend
+        // Combined: OSM + Hillshade blend (multiply mode for stronger terrain)
         const osmHillshadeGroup = L.layerGroup([osmStandard, esriHillshade]);
 
         // GOVMAP WMS — Open Data
