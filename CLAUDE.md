@@ -180,6 +180,23 @@ kumi.systems hangs without responding). Fixes:
 Verified: 3D loads 10,343 features instantly in Tel Aviv; at 8m wave 146 buildings
 turn red; Sheraton hotel (23 floors, real OSM levels) classified as shelter.
 
+### Session 6 — 2026-09-17 — Wave-Height Coordination + Canvas Rendering
+User report: no coordination between wave height and building colors; layers slow.
+1. **Classification vs wave height directly** (user-specified semantics):
+   red = building height (levels×3m) BELOW wave height; green = above;
+   blue = above AND 4+ floors (vertical shelter). The old ×0.7 depth factor
+   removed. Tooltips show "גובה גל: X מ'"; legend texts updated in 5 languages.
+2. **Instant recolor on wave change**: setStyle-in-place via a 3D parts
+   registry (_buildings3DParts) + _recolorBuildings2D/3D — 1-4 ms instead of
+   a full geometry rebuild. controls.js slider hook unchanged (debounced 400ms).
+3. **Leaflet rendering optimizations**: L.canvas renderers for both building
+   layers (dedicated buildings3DPane, zIndex 446); wall quads merged into two
+   MultiPolygons per building (lit/shadow) → 4 canvas paths per building
+   instead of one per edge; base/walls non-interactive (roof only); tile
+   content cropped to viewport+20% before path construction (~2,990 features
+   built instead of 10,343 in the Tel Aviv test view).
+Cache version bumped to ?v=20260917b.
+
 ## Project Structure
 ```
 tsrs-app/

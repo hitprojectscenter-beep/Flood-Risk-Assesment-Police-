@@ -24,13 +24,20 @@ const TSRSOverlays = (() => {
     let debounceTimer = null;
     let _map = null;
 
-    // --- Panes for z-ordering ---
+    // --- Panes for z-ordering + canvas renderers ---
+    // Thousands of building polygons render far faster on a shared canvas
+    // than as individual SVG DOM nodes.
     let _panesCreated = false;
+    let _renderer2D = null;
+    let _renderer3D = null;
     function _ensurePanes(map) {
         if (_panesCreated) return;
         map.createPane('roadsPane').style.zIndex = 450;
         map.createPane('buildingsPane').style.zIndex = 445;
+        map.createPane('buildings3DPane').style.zIndex = 446;
         map.createPane('policePane').style.zIndex = 460;
+        _renderer2D = L.canvas({ pane: 'buildingsPane' });
+        _renderer3D = L.canvas({ pane: 'buildings3DPane' });
         _panesCreated = true;
     }
 
@@ -120,6 +127,7 @@ const TSRSOverlays = (() => {
             _loadBuildings3D();
         } else {
             if (buildings3DLayer && _map) { _map.removeLayer(buildings3DLayer); buildings3DLayer = null; }
+            _buildings3DParts = [];
             lastBuildings3DBounds = null;
         }
     }
@@ -168,6 +176,7 @@ const TSRSOverlays = (() => {
         if (zoom < BUILDINGS_ZOOM.min && buildings3DLayer) {
             _map.removeLayer(buildings3DLayer);
             buildings3DLayer = null;
+            _buildings3DParts = [];
             lastBuildings3DBounds = null;
         }
     }
@@ -295,47 +304,36 @@ const TSRSOverlays = (() => {
         try {
             // Local tiles first: instant and reliable across the coastal band;
             // Overpass only where local coverage ends (inland cities)
-            let geojson = await _loadLocalBuildingTiles(bounds);
+            const loadBounds = _expandBounds(bounds, 0.2);
+            let geojson = await _loadLocalBuildingTiles(loadBounds);
             if (!geojson) {
                 const bbox = _toBBoxStr(bounds);
                 const query = `[out:json][timeout:15];(way["building"](${bbox});relation["building"](${bbox}););out geom;`;
                 const data = await _queryOverpass(query, buildingsAbort.signal);
                 if (data) geojson = osmtogeojson(data);
             }
+            // Only build Leaflet paths for features near the viewport —
+            // tiles can hold far more than is visible
+            geojson = _cropToBounds(geojson, loadBounds);
             if (!geojson || !geojson.features || geojson.features.length === 0) {
                 _showLoadError('buildings-zoom-hint');
                 return;
             }
 
-            // Get current max flood depth from wave height
             const waveHeight = typeof TSRSControls !== 'undefined' ? TSRSControls.getWaveHeight() : 2.0;
-            const maxFloodDepth = waveHeight * 0.7; // approximate max depth
 
             if (buildingsLayer) _map.removeLayer(buildingsLayer);
             buildingsLayer = L.geoJSON(geojson, {
+                renderer: _renderer2D,
                 pane: 'buildingsPane',
-                style: (feature) => _buildingFloodStyle(feature, maxFloodDepth),
+                style: (feature) => _buildingFloodStyle(feature, waveHeight),
                 onEachFeature: (feature, layer) => {
-                    const name = feature.properties.name || '';
-                    // building=yes is OSM's generic tag — not a meaningful label
-                    const rawType = feature.properties.building || '';
-                    const type = rawType === 'yes' ? '' : rawType;
-                    const levels = _getBuildingLevels(feature);
-                    const heightM = levels * 3;
-                    const status = _getBuildingFloodStatus(heightM, maxFloodDepth, levels);
-                    const statusText = status === 'shelter' ? '🔵 מקלט פוטנציאלי' :
-                                       status === 'safe' ? '🟢 מעל עומק הצפה' :
-                                       '🔴 מתחת לעומק הצפה';
-                    const tip = `${name || type || 'מבנה'}<br>${levels} קומות (~${heightM}מ')<br>${statusText}<br>עומק הצפה מירבי: ${maxFloodDepth.toFixed(1)}מ'`;
-                    layer.bindTooltip(tip, { direction: 'top', sticky: true });
+                    layer.bindTooltip(_buildingTooltip(feature, waveHeight), { direction: 'top', sticky: true });
                 },
             });
             buildingsLayer.addTo(_map);
-            buildingsLayer.bringToFront();
-            const sl = TSRSViz.getStationsLayer();
-            if (sl) sl.bringToFront();
 
-            lastBuildingsBounds = _expandBounds(bounds, 0.2);
+            lastBuildingsBounds = loadBounds;
         } catch (e) {
             if (e.name !== 'AbortError') console.warn('Buildings load error:', e.message);
         } finally {
@@ -361,30 +359,25 @@ const TSRSOverlays = (() => {
 
         try {
             // Local tiles first (same source as the 2D buildings layer)
-            let geojson = await _loadLocalBuildingTiles(bounds);
+            const loadBounds = _expandBounds(bounds, 0.2);
+            let geojson = await _loadLocalBuildingTiles(loadBounds);
             if (!geojson) {
                 const bbox = _toBBoxStr(bounds);
                 const query = `[out:json][timeout:15];(way["building"](${bbox});relation["building"](${bbox}););out geom;`;
                 const data = await _queryOverpass(query, buildings3DAbort.signal);
                 if (data) geojson = osmtogeojson(data);
             }
+            geojson = _cropToBounds(geojson, loadBounds);
             if (!geojson || !geojson.features || geojson.features.length === 0) {
                 _showLoadError('buildings-3d-zoom-hint');
                 return;
             }
 
             if (buildings3DLayer) _map.removeLayer(buildings3DLayer);
+            buildings3DLayer = _createPseudo3DLayer(geojson);
+            buildings3DLayer.addTo(_map);
 
-            // Try OSMBuildings classic (if available)
-            if (typeof OSMBuildings !== 'undefined') {
-                buildings3DLayer = new OSMBuildings(_map).set(geojson);
-            } else {
-                // Fallback: CSS-based pseudo-3D extrusion using GeoJSON
-                buildings3DLayer = _createPseudo3DLayer(geojson);
-                buildings3DLayer.addTo(_map);
-            }
-
-            lastBuildings3DBounds = _expandBounds(bounds, 0.2);
+            lastBuildings3DBounds = loadBounds;
             console.log(`3D buildings loaded: ${geojson.features.length} features`);
         } catch (e) {
             if (e.name !== 'AbortError') console.warn('3D buildings load error:', e.message);
@@ -393,16 +386,27 @@ const TSRSOverlays = (() => {
         }
     }
 
+    // Color palettes per flood status (base/walls/roof shades)
+    const BUILDING_PALETTES = {
+        submerged: { base: '#7F1D1D', lit: '#DC2626', dark: '#991B1B', roof: '#EF4444', border: '#7F1D1D' },
+        shelter:   { base: '#1E3A8A', lit: '#2563EB', dark: '#1D4ED8', roof: '#3B82F6', border: '#1E3A8A' },
+        safe:      { base: '#047857', lit: '#059669', dark: '#065F46', roof: '#10B981', border: '#047857' },
+    };
+
+    // Parts registry so a wave-height change recolors in place (no reload)
+    let _buildings3DParts = [];
+
     /**
-     * Create pseudo-3D buildings as CLOSED BOXES.
-     * Each building rendered as: base footprint + 4 side wall panels + roof.
-     * Wall panels are quadrilaterals connecting each base edge to its roof edge.
+     * Create pseudo-3D buildings as CLOSED BOXES on a canvas renderer.
+     * Per building only 4 canvas paths: base footprint, lit walls (one
+     * MultiPolygon), shadow walls (one MultiPolygon), roof — instead of a
+     * separate polygon per wall edge. Only the roof is interactive.
      * Height = building:levels * 3m. Offset direction: NW (isometric).
      */
     function _createPseudo3DLayer(geojson) {
         const group = L.layerGroup();
         const waveHeight = typeof TSRSControls !== 'undefined' ? TSRSControls.getWaveHeight() : 2.0;
-        const maxFloodDepth = waveHeight * 0.7;
+        _buildings3DParts = [];
 
         const sorted = geojson.features
             .filter(f => f.geometry && f.geometry.type === 'Polygon')
@@ -414,87 +418,64 @@ const TSRSOverlays = (() => {
             const ring = feature.geometry.coordinates[0];
             if (!ring || ring.length < 4) return;
 
-            // Colors by flood status
-            let baseColor, wallColorLight, wallColorDark, roofColor, borderColor;
-            if (heightM <= maxFloodDepth) {
-                baseColor = '#7F1D1D'; wallColorLight = '#DC2626'; wallColorDark = '#991B1B';
-                roofColor = '#EF4444'; borderColor = '#7F1D1D';
-            } else if (levels >= 4) {
-                baseColor = '#1E3A8A'; wallColorLight = '#2563EB'; wallColorDark = '#1D4ED8';
-                roofColor = '#3B82F6'; borderColor = '#1E3A8A';
-            } else {
-                baseColor = '#047857'; wallColorLight = '#059669'; wallColorDark = '#065F46';
-                roofColor = '#10B981'; borderColor = '#047857';
-            }
+            const status = _getBuildingFloodStatus(heightM, waveHeight, levels);
+            const pal = BUILDING_PALETTES[status];
 
             // Isometric offset per level (NW direction)
             const ox = -0.000015 * levels; // longitude offset (west)
             const oy = 0.000015 * levels;  // latitude offset (north)
 
             // 1. BASE footprint (ground level — dark)
-            const basePoly = L.polygon(
-                ring.map(c => [c[1], c[0]]),
-                { fillColor: baseColor, fillOpacity: 0.6, color: borderColor, weight: 1, opacity: 0.7 }
-            );
+            const basePoly = L.polygon(ring.map(c => [c[1], c[0]]), {
+                renderer: _renderer3D, pane: 'buildings3DPane', interactive: false,
+                fillColor: pal.base, fillOpacity: 0.6, color: pal.border, weight: 1, opacity: 0.7,
+            });
             group.addLayer(basePoly);
 
-            // 2. WALL panels — one quad per edge connecting base vertex to roof vertex
+            // 2. WALL quads, merged into lit/shadow MultiPolygons
+            const litRings = [], darkRings = [];
             for (let i = 0; i < ring.length - 1; i++) {
-                const b1 = ring[i];      // base vertex i
-                const b2 = ring[i + 1];  // base vertex i+1
-                const r1 = [b1[0] + ox, b1[1] + oy]; // roof vertex i
-                const r2 = [b2[0] + ox, b2[1] + oy]; // roof vertex i+1
-
-                // Determine wall brightness by face direction
-                const edgeDx = b2[0] - b1[0];
-                const edgeDy = b2[1] - b1[1];
+                const b1 = ring[i], b2 = ring[i + 1];
+                const quad = [
+                    [b1[1], b1[0]],            // base-left
+                    [b2[1], b2[0]],            // base-right
+                    [b2[1] + oy, b2[0] + ox],  // roof-right
+                    [b1[1] + oy, b1[0] + ox],  // roof-left
+                ];
                 // Faces pointing south/east are "lit", north/west are "shadow"
-                const isLit = (edgeDx > 0 || edgeDy < 0);
-                const wColor = isLit ? wallColorLight : wallColorDark;
-
-                const wallQuad = L.polygon([
-                    [b1[1], b1[0]],  // base-left
-                    [b2[1], b2[0]],  // base-right
-                    [r2[1], r2[0]],  // roof-right
-                    [r1[1], r1[0]],  // roof-left
-                ], {
-                    fillColor: wColor,
-                    fillOpacity: 0.75,
-                    color: borderColor,
-                    weight: 0.5,
-                    opacity: 0.6,
-                });
-                group.addLayer(wallQuad);
+                ((b2[0] - b1[0] > 0 || b2[1] - b1[1] < 0) ? litRings : darkRings).push([quad]);
             }
+            const mkWalls = (rings, color) => rings.length ? L.polygon(rings, {
+                renderer: _renderer3D, pane: 'buildings3DPane', interactive: false,
+                fillColor: color, fillOpacity: 0.75, color: pal.border, weight: 0.5, opacity: 0.6,
+            }) : null;
+            const wallsLit = mkWalls(litRings, pal.lit);
+            const wallsDark = mkWalls(darkRings, pal.dark);
+            if (wallsLit) group.addLayer(wallsLit);
+            if (wallsDark) group.addLayer(wallsDark);
 
-            // 3. ROOF polygon (top — lighter, full offset)
-            // building=yes is OSM's generic tag — not a meaningful label
-            const rawType = feature.properties.building || '';
-            const name = feature.properties.name || (rawType === 'yes' ? '' : rawType);
-            const status = heightM <= maxFloodDepth ? '🔴 מתחת לעומק הצפה' :
-                           levels >= 4 ? '🔵 מקלט פוטנציאלי' : '🟢 מעל עומק הצפה';
-
-            const roofPoly = L.polygon(
-                ring.map(c => [c[1] + oy, c[0] + ox]),
-                {
-                    fillColor: roofColor,
-                    fillOpacity: 0.9,
-                    color: borderColor,
-                    weight: 1.5,
-                    opacity: 0.9,
-                }
-            );
-            roofPoly.bindTooltip(
-                `<b>${name || 'מבנה'}</b><br>` +
-                `🏢 ${levels} קומות (~${heightM} מ')<br>` +
-                `${status}<br>` +
-                `📐 גובה: ${heightM} מ' (${levels}×3)`,
-                { direction: 'top', sticky: true }
-            );
+            // 3. ROOF polygon (top — lighter, full offset, interactive)
+            const roofPoly = L.polygon(ring.map(c => [c[1] + oy, c[0] + ox]), {
+                renderer: _renderer3D, pane: 'buildings3DPane',
+                fillColor: pal.roof, fillOpacity: 0.9, color: pal.border, weight: 1.5, opacity: 0.9,
+            });
+            roofPoly.bindTooltip(_roofTooltip(feature, levels, heightM, status), { direction: 'top', sticky: true });
             group.addLayer(roofPoly);
+
+            _buildings3DParts.push({ feature, levels, heightM, base: basePoly, wallsLit, wallsDark, roof: roofPoly });
         });
 
         return group;
+    }
+
+    function _roofTooltip(feature, levels, heightM, status) {
+        // building=yes is OSM's generic tag — not a meaningful label
+        const rawType = feature.properties.building || '';
+        const name = feature.properties.name || (rawType === 'yes' ? '' : rawType);
+        return `<b>${name || 'מבנה'}</b><br>` +
+               `🏢 ${levels} קומות (~${heightM} מ')<br>` +
+               `${_statusText(status)}<br>` +
+               `📐 גובה: ${heightM} מ' (${levels}×3)`;
     }
 
     function _getFeatureCentroidLat(feature) {
@@ -571,16 +552,39 @@ const TSRSOverlays = (() => {
         return Math.max(1, levels);
     }
 
-    function _getBuildingFloodStatus(heightM, maxFloodDepth, levels) {
-        if (levels >= 4 && heightM > maxFloodDepth) return 'shelter'; // Potential vertical shelter
-        if (heightM > maxFloodDepth) return 'safe';                    // Above flood level
-        return 'submerged';                                             // Below flood level
+    /**
+     * Classification vs the WAVE HEIGHT directly:
+     *   red    — building height below the wave height
+     *   green  — building height above the wave height
+     *   blue   — above the wave AND 4+ floors → potential vertical shelter
+     */
+    function _getBuildingFloodStatus(heightM, waveHeight, levels) {
+        if (heightM < waveHeight) return 'submerged'; // lower than the wave
+        if (levels >= 4) return 'shelter';            // tall enough to shelter vertically
+        return 'safe';                                // above the wave height
     }
 
-    function _buildingFloodStyle(feature, maxFloodDepth) {
+    function _statusText(status) {
+        return status === 'shelter' ? '🔵 מקלט פוטנציאלי' :
+               status === 'safe' ? '🟢 גבוה מגובה הגל' :
+               '🔴 נמוך מגובה הגל';
+    }
+
+    function _buildingTooltip(feature, waveHeight) {
+        const name = feature.properties.name || '';
+        // building=yes is OSM's generic tag — not a meaningful label
+        const rawType = feature.properties.building || '';
+        const type = rawType === 'yes' ? '' : rawType;
+        const levels = _getBuildingLevels(feature);
+        const heightM = levels * 3;
+        const status = _getBuildingFloodStatus(heightM, waveHeight, levels);
+        return `${name || type || 'מבנה'}<br>${levels} קומות (~${heightM}מ')<br>${_statusText(status)}<br>גובה גל: ${waveHeight.toFixed(1)}מ'`;
+    }
+
+    function _buildingFloodStyle(feature, waveHeight) {
         const levels = _getBuildingLevels(feature);
         const heightM = levels * 3; // ~3m per floor
-        const status = _getBuildingFloodStatus(heightM, maxFloodDepth, levels);
+        const status = _getBuildingFloodStatus(heightM, waveHeight, levels);
 
         const colors = {
             submerged: { fill: '#EF4444', border: '#B91C1C', opacity: 0.6 },  // Red
@@ -595,6 +599,29 @@ const TSRSOverlays = (() => {
             weight: 1,
             opacity: 0.8,
         };
+    }
+
+    // ---- In-place recoloring on wave-height change (no layer reload) ----
+
+    function _recolorBuildings2D(waveHeight) {
+        if (!buildingsLayer) return;
+        buildingsLayer.eachLayer(l => {
+            if (!l.feature) return;
+            l.setStyle(_buildingFloodStyle(l.feature, waveHeight));
+            if (l.getTooltip()) l.setTooltipContent(_buildingTooltip(l.feature, waveHeight));
+        });
+    }
+
+    function _recolorBuildings3D(waveHeight) {
+        _buildings3DParts.forEach(p => {
+            const status = _getBuildingFloodStatus(p.heightM, waveHeight, p.levels);
+            const pal = BUILDING_PALETTES[status];
+            p.base.setStyle({ fillColor: pal.base, color: pal.border });
+            if (p.wallsLit) p.wallsLit.setStyle({ fillColor: pal.lit, color: pal.border });
+            if (p.wallsDark) p.wallsDark.setStyle({ fillColor: pal.dark, color: pal.border });
+            p.roof.setStyle({ fillColor: pal.roof, color: pal.border });
+            if (p.roof.getTooltip()) p.roof.setTooltipContent(_roofTooltip(p.feature, p.levels, p.heightM, status));
+        });
     }
 
     // ========== Internal: Overpass API ==========
@@ -730,14 +757,34 @@ const TSRSOverlays = (() => {
         return outer.contains(inner);
     }
 
+    // Keep only features whose first vertex falls inside the given bounds —
+    // avoids building Leaflet paths for far-off-screen tile content
+    function _cropToBounds(geojson, bounds) {
+        if (!geojson || !geojson.features) return geojson;
+        const features = geojson.features.filter(f => {
+            try {
+                const g = f.geometry;
+                const c = g.type === 'Polygon' ? g.coordinates[0][0] : g.coordinates[0][0][0];
+                return bounds.contains([c[1], c[0]]);
+            } catch (e) {
+                return false;
+            }
+        });
+        return { type: 'FeatureCollection', features };
+    }
+
     /**
-     * Re-style loaded building layers when the wave height changes — their
-     * flood classification (red/green/blue shelter) depends on it. Tiles are
-     * served from the local cache, so the refresh is cheap.
+     * Recolor loaded building layers when the wave height changes — their
+     * classification (red/green/blue shelter) depends on it. Styles are
+     * updated IN PLACE via setStyle (no geometry rebuild), so the refresh
+     * is immediate.
      */
     function refreshForWaveChange() {
-        if (isBuildingsEnabled) { lastBuildingsBounds = null; _loadBuildings(); }
-        if (isBuildings3DEnabled) { lastBuildings3DBounds = null; _loadBuildings3D(); }
+        const wave = typeof TSRSControls !== 'undefined' ? TSRSControls.getWaveHeight() : 2.0;
+        if (buildingsLayer) _recolorBuildings2D(wave);
+        else if (isBuildingsEnabled) _loadBuildings();
+        if (buildings3DLayer) _recolorBuildings3D(wave);
+        else if (isBuildings3DEnabled) _loadBuildings3D();
     }
 
     return { init, setRoadsVisible, setBuildingsVisible, setBuildings3DVisible, setPoliceVisible, refreshForWaveChange };
