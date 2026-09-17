@@ -48,10 +48,15 @@ const TSRSOverlays = (() => {
     const POLICE_ZOOM = { min: 12, max: 18 };
 
     // --- Overpass API endpoints (fallback chain) ---
+    // mail.ru mirror first: overpass-api.de intermittently refuses (406/504)
+    // and kumi.systems hangs without responding.
     const OVERPASS_ENDPOINTS = [
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
         'https://overpass-api.de/api/interpreter',
         'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass.private.coffee/api/interpreter',
     ];
+    const ENDPOINT_TIMEOUT_MS = 20000; // per-endpoint cap so a hung mirror can't stall the chain
 
     // --- Road styles by highway type ---
     const ROAD_COLORS = {
@@ -234,7 +239,7 @@ const TSRSOverlays = (() => {
 
             const query = `[out:json][timeout:15];(way${roadFilter}(${bbox}););out geom;`;
             const data = await _queryOverpass(query, roadsAbort.signal);
-            if (!data) return;
+            if (!data) { _showLoadError('roads-zoom-hint'); return; }
 
             const geojson = osmtogeojson(data);
 
@@ -288,12 +293,19 @@ const TSRSOverlays = (() => {
         buildingsAbort = new AbortController();
 
         try {
-            const bbox = _toBBoxStr(bounds);
-            const query = `[out:json][timeout:15];(way["building"](${bbox});relation["building"](${bbox}););out geom;`;
-            const data = await _queryOverpass(query, buildingsAbort.signal);
-            if (!data) return;
-
-            const geojson = osmtogeojson(data);
+            // Local tiles first: instant and reliable across the coastal band;
+            // Overpass only where local coverage ends (inland cities)
+            let geojson = await _loadLocalBuildingTiles(bounds);
+            if (!geojson) {
+                const bbox = _toBBoxStr(bounds);
+                const query = `[out:json][timeout:15];(way["building"](${bbox});relation["building"](${bbox}););out geom;`;
+                const data = await _queryOverpass(query, buildingsAbort.signal);
+                if (data) geojson = osmtogeojson(data);
+            }
+            if (!geojson || !geojson.features || geojson.features.length === 0) {
+                _showLoadError('buildings-zoom-hint');
+                return;
+            }
 
             // Get current max flood depth from wave height
             const waveHeight = typeof TSRSControls !== 'undefined' ? TSRSControls.getWaveHeight() : 2.0;
@@ -305,7 +317,9 @@ const TSRSOverlays = (() => {
                 style: (feature) => _buildingFloodStyle(feature, maxFloodDepth),
                 onEachFeature: (feature, layer) => {
                     const name = feature.properties.name || '';
-                    const type = feature.properties.building || '';
+                    // building=yes is OSM's generic tag — not a meaningful label
+                    const rawType = feature.properties.building || '';
+                    const type = rawType === 'yes' ? '' : rawType;
                     const levels = _getBuildingLevels(feature);
                     const heightM = levels * 3;
                     const status = _getBuildingFloodStatus(heightM, maxFloodDepth, levels);
@@ -346,12 +360,18 @@ const TSRSOverlays = (() => {
         buildings3DAbort = new AbortController();
 
         try {
-            const bbox = _toBBoxStr(bounds);
-            const query = `[out:json][timeout:15];(way["building"](${bbox});relation["building"](${bbox}););out geom;`;
-            const data = await _queryOverpass(query, buildings3DAbort.signal);
-            if (!data) return;
-
-            const geojson = osmtogeojson(data);
+            // Local tiles first (same source as the 2D buildings layer)
+            let geojson = await _loadLocalBuildingTiles(bounds);
+            if (!geojson) {
+                const bbox = _toBBoxStr(bounds);
+                const query = `[out:json][timeout:15];(way["building"](${bbox});relation["building"](${bbox}););out geom;`;
+                const data = await _queryOverpass(query, buildings3DAbort.signal);
+                if (data) geojson = osmtogeojson(data);
+            }
+            if (!geojson || !geojson.features || geojson.features.length === 0) {
+                _showLoadError('buildings-3d-zoom-hint');
+                return;
+            }
 
             if (buildings3DLayer) _map.removeLayer(buildings3DLayer);
 
@@ -448,7 +468,9 @@ const TSRSOverlays = (() => {
             }
 
             // 3. ROOF polygon (top — lighter, full offset)
-            const name = feature.properties.name || feature.properties.building || '';
+            // building=yes is OSM's generic tag — not a meaningful label
+            const rawType = feature.properties.building || '';
+            const name = feature.properties.name || (rawType === 'yes' ? '' : rawType);
             const status = heightM <= maxFloodDepth ? '🔴 מתחת לעומק הצפה' :
                            levels >= 4 ? '🔵 מקלט פוטנציאלי' : '🟢 מעל עומק הצפה';
 
@@ -506,7 +528,7 @@ const TSRSOverlays = (() => {
             const bbox = _toBBoxStr(bounds);
             const query = `[out:json][timeout:15];(node["amenity"="police"](${bbox});way["amenity"="police"](${bbox}););out center;`;
             const data = await _queryOverpass(query, policeAbort.signal);
-            if (!data) return;
+            if (!data) { _showLoadError('police-zoom-hint'); return; }
 
             if (policeLayer) _map.removeLayer(policeLayer);
             policeLayer = L.layerGroup();
@@ -577,23 +599,107 @@ const TSRSOverlays = (() => {
 
     // ========== Internal: Overpass API ==========
 
-    async function _queryOverpass(query, signal) {
+    // Overpass rate-limits concurrent queries per IP (returns 504/429),
+    // so requests are serialized: only one query is in flight at a time.
+    let _overpassChain = Promise.resolve();
+
+    function _queryOverpass(query, signal) {
+        const run = _overpassChain.then(
+            () => _queryOverpassNow(query, signal),
+            () => _queryOverpassNow(query, signal)
+        );
+        _overpassChain = run.catch(() => {});
+        return run;
+    }
+
+    // Show a temporary error hint next to the layer label when all endpoints fail
+    function _showLoadError(hintId) {
+        const hint = document.getElementById(hintId);
+        if (!hint) return;
+        const msg = (typeof I18n !== 'undefined') ? I18n.t('layer_load_error') : 'שגיאת טעינה — נסו שוב';
+        hint.textContent = '⚠️ ' + msg;
+        setTimeout(() => {
+            if (hint.textContent.startsWith('⚠️')) hint.textContent = '';
+        }, 6000);
+    }
+
+    async function _queryOverpassNow(query, signal) {
         for (const endpoint of OVERPASS_ENDPOINTS) {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), ENDPOINT_TIMEOUT_MS);
+            const onAbort = () => ctrl.abort();
+            if (signal) signal.addEventListener('abort', onAbort, { once: true });
             try {
                 const resp = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: 'data=' + encodeURIComponent(query),
-                    signal: signal,
+                    signal: ctrl.signal,
                 });
                 if (resp.ok) return await resp.json();
             } catch (e) {
-                if (e.name === 'AbortError') throw e;
-                // Try next endpoint
+                // Rethrow only when the CALLER aborted (new map view);
+                // a per-endpoint timeout just moves on to the next mirror.
+                if (signal && signal.aborted) throw e;
+            } finally {
+                clearTimeout(timer);
+                if (signal) signal.removeEventListener('abort', onAbort);
             }
         }
         console.warn('All Overpass endpoints failed');
         return null;
+    }
+
+    // ========== Internal: Local building tiles ==========
+    // Pre-generated from the Geofabrik OSM shapefile for the Mediterranean
+    // coastal band (backend/generate_building_tiles.py), with real OSM
+    // building:levels baked in — buildings and 3D layers stay functional
+    // even when every Overpass endpoint is down.
+
+    const LOCAL_TILE_SIZE = 0.02; // degrees, must match the generator
+    let _localTilesIndex = null;  // Set of "x_y" keys ({} when unavailable)
+    const _localTileCache = {};   // key -> features array
+
+    async function _getLocalTilesIndex() {
+        if (_localTilesIndex) return _localTilesIndex;
+        try {
+            const resp = await fetch('data/buildings_tiles/index.json');
+            _localTilesIndex = resp.ok ? new Set(await resp.json()) : new Set();
+        } catch (e) {
+            _localTilesIndex = new Set();
+        }
+        return _localTilesIndex;
+    }
+
+    async function _loadLocalBuildingTiles(bounds) {
+        const index = await _getLocalTilesIndex();
+        const keys = [];
+        const x0 = Math.floor(bounds.getWest() / LOCAL_TILE_SIZE);
+        const x1 = Math.floor(bounds.getEast() / LOCAL_TILE_SIZE);
+        const y0 = Math.floor(bounds.getSouth() / LOCAL_TILE_SIZE);
+        const y1 = Math.floor(bounds.getNorth() / LOCAL_TILE_SIZE);
+        for (let x = x0; x <= x1; x++) {
+            for (let y = y0; y <= y1; y++) {
+                const key = `${x}_${y}`;
+                if (index.has(key)) keys.push(key);
+            }
+        }
+        if (keys.length === 0) return null;
+
+        const lists = await Promise.all(keys.map(async key => {
+            if (_localTileCache[key]) return _localTileCache[key];
+            try {
+                const resp = await fetch(`data/buildings_tiles/${key}.json`);
+                if (!resp.ok) return [];
+                const fc = await resp.json();
+                _localTileCache[key] = fc.features || [];
+                return _localTileCache[key];
+            } catch (e) {
+                return [];
+            }
+        }));
+        const features = [].concat(...lists);
+        return features.length ? { type: 'FeatureCollection', features } : null;
     }
 
     // ========== Internal: Geometry helpers ==========
@@ -624,5 +730,15 @@ const TSRSOverlays = (() => {
         return outer.contains(inner);
     }
 
-    return { init, setRoadsVisible, setBuildingsVisible, setBuildings3DVisible, setPoliceVisible };
+    /**
+     * Re-style loaded building layers when the wave height changes — their
+     * flood classification (red/green/blue shelter) depends on it. Tiles are
+     * served from the local cache, so the refresh is cheap.
+     */
+    function refreshForWaveChange() {
+        if (isBuildingsEnabled) { lastBuildingsBounds = null; _loadBuildings(); }
+        if (isBuildings3DEnabled) { lastBuildings3DBounds = null; _loadBuildings3D(); }
+    }
+
+    return { init, setRoadsVisible, setBuildingsVisible, setBuildings3DVisible, setPoliceVisible, refreshForWaveChange };
 })();

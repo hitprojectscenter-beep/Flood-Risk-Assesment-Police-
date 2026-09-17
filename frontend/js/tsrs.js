@@ -87,6 +87,30 @@ const TSRSViz = (() => {
 
     // Police icons now handled by osm-overlays.js (real OSM data)
 
+    /**
+     * Normalize Hebrew city names for CBS matching.
+     * CBS and OSM spell some cities differently: "הרצלייה"/"הרצליה",
+     * "נהרייה"/"נהריה", "תל אביב -יפו"/"תל אביב-יפו".
+     */
+    function _normalizeCityName(s) {
+        return (s || '')
+            .replace(/['"׳״]/g, '')
+            .replace(/\s*-\s*/g, '-')
+            .replace(/יי/g, 'י')
+            .trim();
+    }
+
+    function _findCbsEntry(cbsData, cityName) {
+        if (!cbsData || !cityName) return null;
+        if (cbsData[cityName]) return cbsData[cityName];
+        const norm = _normalizeCityName(cityName);
+        for (const [name, entry] of Object.entries(cbsData)) {
+            const n = _normalizeCityName(name);
+            if (n === norm || norm.includes(n) || n.includes(norm)) return entry;
+        }
+        return null;
+    }
+
     async function loadStations(map, district = 'all') {
         try {
             // Load cities.json FIRST (real municipal boundaries), then fallback to stations.json
@@ -117,15 +141,7 @@ const TSRSViz = (() => {
             if (cbsData && data.features) {
                 data = {
                     type: 'FeatureCollection',
-                    features: data.features.filter(f => {
-                        const name = f.properties.station_name;
-                        if (cbsData[name]) return true;
-                        // Try partial match
-                        for (const cbsName of Object.keys(cbsData)) {
-                            if (name.includes(cbsName) || cbsName.includes(name)) return true;
-                        }
-                        return false;
-                    })
+                    features: data.features.filter(f => !!_findCbsEntry(cbsData, f.properties.station_name))
                 };
                 console.log(`Filtered to ${data.features.length} cities with CBS data`);
             }
@@ -315,22 +331,8 @@ const TSRSViz = (() => {
 
         // Try to get REAL socioeconomic cluster from CBS data
         let realCluster = 0;
-        const cbsData = window._cbsSocioData;
-        if (cbsData) {
-            // Try exact name match, then partial
-            const cityName = props.station_name;
-            if (cbsData[cityName]) {
-                realCluster = cbsData[cityName].cluster;
-            } else {
-                // Try matching without dashes/spaces
-                for (const [name, data] of Object.entries(cbsData)) {
-                    if (cityName.includes(name) || name.includes(cityName)) {
-                        realCluster = data.cluster;
-                        break;
-                    }
-                }
-            }
-        }
+        const cbsEntry = _findCbsEntry(window._cbsSocioData, props.station_name);
+        if (cbsEntry) realCluster = cbsEntry.cluster;
 
         const cluster = realCluster || vary(5, 3);
 

@@ -1,0 +1,1 @@
+{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"building": "greenhouse", "building:levels": "1"}, "geometry": {"type": "Polygon", "coordinates": [[[34.538075, 31.580455], [34.539737, 31.581143], [34.540219, 31.5803], [34.538556, 31.579611], [34.538075, 31.580455]]]}}]}

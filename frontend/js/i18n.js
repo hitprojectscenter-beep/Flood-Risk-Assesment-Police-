@@ -26,8 +26,10 @@ const I18n = (() => {
             layer_police: 'תחנות משטרה',
             layer_roads: 'כבישים',
             layer_buildings: 'מבנים',
+            layer_buildings_3d: 'מבנים תלת-מימד',
             layer_hillshade: 'תבליט',
             zoom_required: 'זום {n}+ נדרש',
+            layer_load_error: 'שגיאת טעינה — נסו שוב',
             // Severity
             sev_low: 'נמוך', sev_medium: 'בינוני', sev_high: 'חזק', sev_extreme: 'קיצוני',
             // Legend
@@ -97,8 +99,10 @@ const I18n = (() => {
             layer_police: 'Police Stations',
             layer_roads: 'Roads',
             layer_buildings: 'Buildings',
+            layer_buildings_3d: '3D Buildings',
             layer_hillshade: 'Hillshade',
             zoom_required: 'Zoom {n}+ required',
+            layer_load_error: 'Load failed — try again',
             sev_low: 'Low', sev_medium: 'Moderate', sev_high: 'Strong', sev_extreme: 'Extreme',
             critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', minimal: 'Minimal',
             heatmap_flood: 'Heatmap — Flooding',
@@ -160,8 +164,10 @@ const I18n = (() => {
             layer_police: 'Полицейские участки',
             layer_roads: 'Дороги',
             layer_buildings: 'Здания',
+            layer_buildings_3d: '3D-здания',
             layer_hillshade: 'Рельеф',
             zoom_required: 'Зум {n}+ необходим',
+            layer_load_error: 'Ошибка загрузки — повторите',
             sev_low: 'Низкий', sev_medium: 'Средний', sev_high: 'Сильный', sev_extreme: 'Экстремальный',
             critical: 'Критический', high: 'Высокий', medium: 'Средний', low: 'Низкий', minimal: 'Минимальный',
             heatmap_flood: 'Тепловая карта — затопление',
@@ -218,8 +224,10 @@ const I18n = (() => {
             layer_police: 'Postes de police',
             layer_roads: 'Routes',
             layer_buildings: 'Bâtiments',
+            layer_buildings_3d: 'Bâtiments 3D',
             layer_hillshade: 'Relief',
             zoom_required: 'Zoom {n}+ requis',
+            layer_load_error: 'Échec du chargement — réessayez',
             sev_low: 'Faible', sev_medium: 'Modéré', sev_high: 'Fort', sev_extreme: 'Extrême',
             critical: 'Critique', high: 'Élevé', medium: 'Moyen', low: 'Faible', minimal: 'Minimal',
             heatmap_flood: 'Carte thermique — inondation',
@@ -276,8 +284,10 @@ const I18n = (() => {
             layer_police: 'Estaciones de policía',
             layer_roads: 'Carreteras',
             layer_buildings: 'Edificios',
+            layer_buildings_3d: 'Edificios 3D',
             layer_hillshade: 'Relieve',
             zoom_required: 'Zoom {n}+ requerido',
+            layer_load_error: 'Error de carga — reintentar',
             sev_low: 'Bajo', sev_medium: 'Moderado', sev_high: 'Fuerte', sev_extreme: 'Extremo',
             critical: 'Crítico', high: 'Alto', medium: 'Medio', low: 'Bajo', minimal: 'Mínimo',
             heatmap_flood: 'Mapa de calor — inundación',
@@ -359,6 +369,7 @@ const I18n = (() => {
         _setText('label-text-police', '🛡️ ' + t('layer_police'));
         _setText('label-text-roads', '🛣️ ' + t('layer_roads'));
         _setText('label-text-buildings', '🏗️ ' + t('layer_buildings'));
+        _setText('label-text-buildings-3d', '🏢 ' + t('layer_buildings_3d'));
         _setText('label-text-hillshade', '⛰️ ' + t('layer_hillshade'));
         // Legend
         _setText('legend-critical', t('critical') + ' (80-100)');

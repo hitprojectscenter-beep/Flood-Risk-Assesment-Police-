@@ -33,6 +33,8 @@ const TSRSControls = (() => {
         });
     }
 
+    let waveBuildingsTimer = null;
+
     function _initWaveSlider(map) {
         const slider = document.getElementById('wave-slider');
         const valueDisplay = document.getElementById('wave-value');
@@ -55,6 +57,12 @@ const TSRSControls = (() => {
             // Update inundation layer
             if (typeof TSRSInundation !== 'undefined') {
                 TSRSInundation.updateLayer(map, currentWaveHeight);
+            }
+
+            // Re-style building layers — flood classification depends on wave height
+            if (typeof TSRSOverlays !== 'undefined' && TSRSOverlays.refreshForWaveChange) {
+                clearTimeout(waveBuildingsTimer);
+                waveBuildingsTimer = setTimeout(() => TSRSOverlays.refreshForWaveChange(), 400);
             }
         });
     }

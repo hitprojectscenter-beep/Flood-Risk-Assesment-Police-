@@ -139,6 +139,47 @@ Major calibration of TSRS weights for Israel 2026 conditions:
   - files_2/TDD_Updates_English.docx
 - Full sync of CLAUDE.md and Memory.md with current state
 
+### Session 4 — 2026-09-09 — Health Check + Bug Fixes
+Full integrity check (syntax, JSON, live browser run, backend smoke test), then fixes:
+1. **CRITICAL — heatmap init crash**: leaflet.heat canvas created while map container
+   had zero width → IndexSizeError on every map move, init aborted, map stuck at wrong
+   zoom. Fixed: `_addHeatmapSafely()` in inundation.js (size guard + deferred add on
+   resize), `map.invalidateSize()` + separated try/catch blocks in app.js.
+2. **Overpass rate limiting**: 3 concurrent queries → 504. Fixed: requests serialized
+   via promise chain in osm-overlays.js; on total failure a temporary "⚠ load error"
+   hint is shown next to the layer label (new i18n key `layer_load_error`).
+3. **Missing coastal cities**: Tel Aviv-Yafo was absent from cities.json entirely;
+   Herzliya + Nahariya were filtered out by CBS spelling mismatches (הרצלייה/נהרייה).
+   Fixed: `_normalizeCityName()` matching in tsrs.js (213 cities now pass, was 190);
+   backend/add_missing_cities.py fetches Tel Aviv-Yafo boundary (OSM name:en is
+   "Tel-Aviv") with real population 474,530 → cities.json now 238 features.
+4. **i18n**: added `layer_buildings_3d` key (5 languages) — 3D buildings label now translates.
+5. **Building tooltips**: OSM `building=yes` no longer shown as literal name "yes".
+Generated 6 app screenshots → `../Claude outputs/screenshots/`.
+
+### Session 5 — 2026-09-17 — Buildings/3D Reliability (Local Tiles)
+User report: buildings + 3D layers (and shelter analysis) fail to load. Root cause:
+ALL Overpass endpoints unreliable from this machine (overpass-api.de → 406/504,
+kumi.systems hangs without responding). Fixes:
+1. **Local building tiles** (the big one): backend/generate_building_tiles.py extracts
+   115,265 buildings in the Mediterranean coastal band (lat 31.55–33.12, coast+4km)
+   from ../../OSM/gis_osm_buildings_a_free_1.shp into 229 GeoJSON tiles (0.02° grid,
+   31.4 MB) at frontend/data/buildings_tiles/ + index.json. Real building:levels for
+   16,016 buildings fetched once from Overpass by osm_id and baked in (cached at
+   backend/data/building_levels_cache.json). Frontend loads local tiles FIRST
+   (instant, offline-capable); Overpass only outside tile coverage.
+2. **Overpass chain hardened**: maps.mail.ru mirror added first (works + CORS),
+   private.coffee added last; 20s per-endpoint timeout so a hung mirror can't stall.
+3. **Wave-height reactivity**: building flood classification (red/green/blue shelter)
+   now re-styles when the wave slider moves (TSRSOverlays.refreshForWaveChange(),
+   debounced in controls.js) — previously computed only at layer load.
+4. **Dead CDN removed**: cdn.osmbuildings.org script tag deleted (was 404; the
+   isometric pseudo-3D renderer in osm-overlays.js is the actual renderer).
+5. **Cache busting**: ?v=20260917 on all local JS/CSS includes — stale-cache issues
+   repeatedly masked fixes. Bump the version when editing frontend JS/CSS.
+Verified: 3D loads 10,343 features instantly in Tel Aviv; at 8m wave 146 buildings
+turn red; Sheraton hotel (23 floors, real OSM levels) classified as shelter.
+
 ## Project Structure
 ```
 tsrs-app/

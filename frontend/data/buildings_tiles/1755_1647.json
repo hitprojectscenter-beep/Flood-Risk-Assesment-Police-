@@ -1,0 +1,1 @@
+{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"building": "yes", "building:levels": "2"}, "geometry": {"type": "Polygon", "coordinates": [[[35.100288, 32.960369], [35.10093, 32.960389], [35.100946, 32.960014], [35.100817, 32.96001], [35.100835, 32.95959], [35.100322, 32.959574], [35.100288, 32.960369]]]}}]}

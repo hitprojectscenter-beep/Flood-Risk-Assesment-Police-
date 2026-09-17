@@ -152,7 +152,7 @@ const TSRSInundation = (() => {
             });
 
             if (isVisible) {
-                if (heatmapLayer) heatmapLayer.addTo(map);
+                _addHeatmapSafely(map);
                 inundationLayer.addTo(map);
                 // Keep stations on top
                 const stationsLayer = TSRSViz.getStationsLayer();
@@ -164,6 +164,36 @@ const TSRSInundation = (() => {
             console.error('Error loading inundation:', err);
             return null;
         }
+    }
+
+    /**
+     * Add the heat layer only when the map has real dimensions.
+     * leaflet.heat sizes its canvas at add-time; a 0-width map container
+     * (e.g. during initial page layout) yields a 0-width canvas and every
+     * subsequent draw crashes with IndexSizeError, breaking all map moves.
+     */
+    function _addHeatmapSafely(map) {
+        if (!heatmapLayer) return;
+        const layer = heatmapLayer;
+        const size = map.getSize();
+        if (size.x > 0 && size.y > 0) {
+            try {
+                layer.addTo(map);
+                return;
+            } catch (e) {
+                try { map.removeLayer(layer); } catch (_) {}
+                console.warn('Heatmap add failed, deferring to next resize:', e.message);
+            }
+        }
+        // Defer until the map container gets real dimensions
+        map.once('resize', () => {
+            if (layer !== heatmapLayer || !isVisible || map.hasLayer(layer)) return;
+            try {
+                layer.addTo(map);
+            } catch (e) {
+                console.warn('Heatmap deferred add failed:', e.message);
+            }
+        });
     }
 
     // Heatmap radius scales with wave height (bigger waves = wider spread)
@@ -222,7 +252,7 @@ const TSRSInundation = (() => {
     function setVisible(map, visible) {
         isVisible = visible;
         if (visible) {
-            if (heatmapLayer) map.addLayer(heatmapLayer);
+            _addHeatmapSafely(map);
             if (inundationLayer) map.addLayer(inundationLayer);
         } else {
             if (heatmapLayer) map.removeLayer(heatmapLayer);

@@ -37,23 +37,31 @@
     }
 
     // 8. Load initial data layers
+    // Re-measure the container first — the map may have been created before
+    // the page layout settled, leaving Leaflet with stale (or zero) dimensions.
+    map.invalidateSize();
+
     try {
         await TSRSViz.loadStations(map, 'all');
-        await TSRSInundation.loadInundation(map, 2.0);
-
         const stationsLayer = TSRSViz.getStationsLayer();
         if (stationsLayer) {
             TSRSMap.fitToFeatures(stationsLayer);
         }
-
-        // Close mobile sidebar when clicking the map
-        map.on('click', () => {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) sidebar.classList.remove('sidebar-open');
-        });
-
-        console.log('TSRS Application initialized successfully');
     } catch (err) {
-        console.error('Error initializing TSRS app:', err);
+        console.error('Error loading stations:', err);
     }
+
+    try {
+        await TSRSInundation.loadInundation(map, 2.0);
+    } catch (err) {
+        console.error('Error loading inundation:', err);
+    }
+
+    // Close mobile sidebar when clicking the map
+    map.on('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.remove('sidebar-open');
+    });
+
+    console.log('TSRS Application initialized successfully');
 })();

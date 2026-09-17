@@ -1,0 +1,1 @@
+{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"building": "yes", "building:levels": "2", "name": "כלוב הנשרים"}, "geometry": {"type": "Polygon", "coordinates": [[[34.93909, 32.558825], [34.939446, 32.559008], [34.939513, 32.558915], [34.939157, 32.558731], [34.93909, 32.558825]]]}}]}
