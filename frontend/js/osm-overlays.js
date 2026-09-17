@@ -109,6 +109,13 @@ const TSRSOverlays = (() => {
         }
     }
 
+    // An empty leftover canvas still swallows DOM clicks over the whole map,
+    // blocking city querying — drop it; Leaflet re-adds the renderer
+    // automatically the next time a path uses it.
+    function _removeRendererIfIdle(renderer) {
+        if (renderer && _map && _map.hasLayer(renderer)) _map.removeLayer(renderer);
+    }
+
     function setBuildingsVisible(map, visible) {
         if (!_map && map) { _map = map; _ensurePanes(map); }
         isBuildingsEnabled = visible;
@@ -116,6 +123,7 @@ const TSRSOverlays = (() => {
             _loadBuildings();
         } else {
             if (buildingsLayer && _map) { _map.removeLayer(buildingsLayer); buildingsLayer = null; }
+            _removeRendererIfIdle(_renderer2D);
             lastBuildingsBounds = null;
         }
     }
@@ -128,6 +136,7 @@ const TSRSOverlays = (() => {
         } else {
             if (buildings3DLayer && _map) { _map.removeLayer(buildings3DLayer); buildings3DLayer = null; }
             _buildings3DParts = [];
+            _removeRendererIfIdle(_renderer3D);
             lastBuildings3DBounds = null;
         }
     }
@@ -171,12 +180,14 @@ const TSRSOverlays = (() => {
         if (zoom < BUILDINGS_ZOOM.min && buildingsLayer) {
             _map.removeLayer(buildingsLayer);
             buildingsLayer = null;
+            _removeRendererIfIdle(_renderer2D);
             lastBuildingsBounds = null;
         }
         if (zoom < BUILDINGS_ZOOM.min && buildings3DLayer) {
             _map.removeLayer(buildings3DLayer);
             buildings3DLayer = null;
             _buildings3DParts = [];
+            _removeRendererIfIdle(_renderer3D);
             lastBuildings3DBounds = null;
         }
     }

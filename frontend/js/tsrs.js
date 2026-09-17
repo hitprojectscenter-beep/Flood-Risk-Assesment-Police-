@@ -111,7 +111,64 @@ const TSRSViz = (() => {
         return null;
     }
 
+    // ---- Canvas click fall-through ----
+    // Canvas overlays (heatmap, buildings, 3D buildings) sit above the SVG
+    // city polygons and swallow their DOM clicks. When a map click lands on
+    // a canvas element, hit-test the cities layer manually and fire the
+    // city's click handler so querying keeps working.
+
+    let _canvasFallbackInstalled = false;
+
+    function _pointInRing(lng, lat, ring) {
+        let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const xi = ring[i][0], yi = ring[i][1];
+            const xj = ring[j][0], yj = ring[j][1];
+            if (((yi > lat) !== (yj > lat)) &&
+                (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
+    function _polygonContains(geom, latlng) {
+        if (!geom) return false;
+        const polys = geom.type === 'Polygon' ? [geom.coordinates] :
+                      geom.type === 'MultiPolygon' ? geom.coordinates : [];
+        for (const poly of polys) {
+            if (!poly || !poly.length) continue;
+            if (_pointInRing(latlng.lng, latlng.lat, poly[0])) {
+                let inHole = false;
+                for (let h = 1; h < poly.length; h++) {
+                    if (_pointInRing(latlng.lng, latlng.lat, poly[h])) { inHole = true; break; }
+                }
+                if (!inHole) return true;
+            }
+        }
+        return false;
+    }
+
+    function _initCanvasClickFallback(map) {
+        if (_canvasFallbackInstalled) return;
+        _canvasFallbackInstalled = true;
+        map.on('click', (e) => {
+            const t = e.originalEvent && e.originalEvent.target;
+            // Clicks on SVG paths reach the city polygons natively —
+            // only canvas-swallowed clicks need recovery
+            if (!t || t.tagName !== 'CANVAS') return;
+            if (!stationsLayer) return;
+            let hit = null;
+            stationsLayer.eachLayer(l => {
+                if (hit || !l.feature) return;
+                if (_polygonContains(l.feature.geometry, e.latlng)) hit = l;
+            });
+            if (hit) hit.fire('click', { latlng: e.latlng, target: hit });
+        });
+    }
+
     async function loadStations(map, district = 'all') {
+        _initCanvasClickFallback(map);
         try {
             // Load cities.json FIRST (real municipal boundaries), then fallback to stations.json
             let data = null;

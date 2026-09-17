@@ -197,6 +197,23 @@ User report: no coordination between wave height and building colors; layers slo
    built instead of 10,343 in the Tel Aviv test view).
 Cache version bumped to ?v=20260917b.
 
+### Session 7 — 2026-09-17 — City Querying Fix (Canvas Click-Swallowing)
+User report: cities layer stopped responding to clicks after toggling buildings.
+Root cause: the building canvas renderers (and the leaflet.heat canvas) are DOM
+elements covering the whole map above the SVG city polygons — they swallow the
+clicks; the empty canvases even persisted after the layers were turned off,
+leaving querying dead at every zoom. Fixes:
+1. tsrs.js: map-level click fallback — when a click's DOM target is a CANVAS,
+   the cities layer is hit-tested manually (ray-casting point-in-polygon,
+   Polygon+MultiPolygon+holes) and the matched city's click handler is fired.
+2. osm-overlays.js: _removeRendererIfIdle() detaches a canvas renderer from
+   the map whenever its building layer is removed (toggle off / zoom-out);
+   Leaflet re-attaches it automatically on next use.
+Verified: city popup opens with buildings+3D active (click through canvas),
+after toggling off only the heat canvas remains and native SVG clicks work,
+re-enabling re-adds canvases with recolor + fallback intact.
+Cache version: ?v=20260917c.
+
 ## Project Structure
 ```
 tsrs-app/
