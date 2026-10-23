@@ -1,7 +1,7 @@
 // יומן שטח — בקר ראשי: מפה, דקירת נקודה, טופס הזנה, צפייה, רשימה, ייצוא.
 import { createStore } from './store.js';
 import { resizeImage } from './photos.js';
-import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS } from './config.js';
+import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS, EXTRA_FIELDS } from './config.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -482,6 +482,7 @@ function openForm(point) {
     $('fName').value = editing ? editing.location_name : '';
     $('fReporter').value = editing ? editing.reporter_name : (localStorage.getItem('fc_reporter') || store.getUser().name || '');
     $('fNotes').value = editing ? (editing.notes || '') : '';
+    EXTRA_FIELDS.forEach(f => { $('x_' + f.key).value = editing ? (editing[f.key] || '') : ''; });
     newPhotos.forEach(p => URL.revokeObjectURL(p.url));
     newPhotos = [];
     keptPhotos = editing ? editing.photo_paths.map((path, i) => ({ path, url: editing.photos[i] })) : [];
@@ -495,6 +496,69 @@ $('formClose').addEventListener('click', () => {
     if (($('fName').value || $('fNotes').value || newPhotos.length) && !editing &&
         !confirm('לבטל את הנקודה? הנתונים שהוזנו יימחקו')) return;
     closeSheet('formSheet');
+});
+
+// ---- שדות נוספים + השלמה אוטומטית מתוך בסיס הנתונים ----
+let managedOptions = [];                  // [{field, value}] מטבלת field_options
+$('extraFields').innerHTML = EXTRA_FIELDS.map(f => `
+    <label class="field ac-wrap">
+        <span>${ms(f.icon)} ${esc(f.label)}</span>
+        <input id="x_${f.key}" data-key="${f.key}" type="text" maxlength="200" autocomplete="off" placeholder="${esc(f.placeholder || '')}"
+               role="combobox" aria-autocomplete="list" aria-expanded="false">
+        <ul class="ac-list" role="listbox" hidden></ul>
+    </label>`).join('');
+function suggestionsFor(key, q) {
+    const count = new Map();
+    const add = (v, w) => { v = (v || '').trim(); if (v) count.set(v, (count.get(v) || 0) + w); };
+    managedOptions.filter(o => o.field === key).forEach(o => add(o.value, 1000));   // רשימה מנוהלת קודמת
+    points.forEach(p => add(p[key], 1));
+    q = (q || '').trim().toLowerCase();
+    return [...count.entries()]
+        .filter(([v]) => !q || (v.toLowerCase().includes(q) && v.toLowerCase() !== q))
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'he'))
+        .slice(0, 8).map(([v]) => v);
+}
+function showAc(input) {
+    const list = input.nextElementSibling;
+    const items = suggestionsFor(input.dataset.key, input.value);
+    const q = input.value.trim();
+    list.innerHTML = items.map((v, i) => {
+        const at = q ? v.toLowerCase().indexOf(q.toLowerCase()) : -1;
+        const html = at >= 0 ? esc(v.slice(0, at)) + '<mark>' + esc(v.slice(at, at + q.length)) + '</mark>' + esc(v.slice(at + q.length)) : esc(v);
+        return `<li role="option" data-i="${i}">${html}</li>`;
+    }).join('');
+    list._items = items;
+    list._sel = -1;
+    list.hidden = !items.length;
+    input.setAttribute('aria-expanded', String(!!items.length));
+}
+function hideAc(input) { input.nextElementSibling.hidden = true; input.setAttribute('aria-expanded', 'false'); }
+$('extraFields').addEventListener('focusin', e => { if (e.target.matches('input')) showAc(e.target); });
+$('extraFields').addEventListener('input', e => { if (e.target.matches('input')) showAc(e.target); });
+$('extraFields').addEventListener('focusout', e => { if (e.target.matches('input')) setTimeout(() => hideAc(e.target), 150); });
+$('extraFields').addEventListener('pointerdown', e => {
+    const li = e.target.closest('.ac-list li');
+    if (!li) return;
+    e.preventDefault();                                  // שומר את הפוקוס בשדה
+    const list = li.parentElement, input = list.previousElementSibling;
+    input.value = list._items[+li.dataset.i];
+    hideAc(input);
+    buzz(6);
+});
+$('extraFields').addEventListener('keydown', e => {
+    if (!e.target.matches('input')) return;
+    const list = e.target.nextElementSibling;
+    if (list.hidden) return;
+    const lis = list.querySelectorAll('li');
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        list._sel = (list._sel + (e.key === 'ArrowDown' ? 1 : -1) + lis.length) % lis.length;
+        lis.forEach((li, i) => li.classList.toggle('sel', i === list._sel));
+    } else if (e.key === 'Enter' && list._sel >= 0) {
+        e.preventDefault();
+        e.target.value = list._items[list._sel];
+        hideAc(e.target);
+    } else if (e.key === 'Escape') hideAc(e.target);
 });
 
 function renderPhotoGrid() {
@@ -548,6 +612,7 @@ $('pointForm').addEventListener('submit', async e => {
     const progress = (i, n) => setMsg('formMsg', `מעלה תמונה ${i} מתוך ${n}…`, true);
     setMsg('formMsg', 'שומר…', true);
     const fields = { location_name, reporter_name, notes, lat: draft.lat, lng: draft.lng, accuracy_m: draft.accuracy_m };
+    EXTRA_FIELDS.forEach(f => { fields[f.key] = $('x_' + f.key).value.trim(); });
     try {
         let saved;
         if (editing) {
@@ -612,6 +677,8 @@ function renderDetail(id) {
             <span class="coords" dir="ltr">${fmtCoord(p.lat, p.lng)}${p.accuracy_m ? ` (±${p.accuracy_m}m)` : ''}</span>
             <button class="btn btn-xs btn-ghost" data-act="copy">${ms('content_copy')} העתקה</button>
         </div>
+        ${EXTRA_FIELDS.some(f => p[f.key]) ? `<div class="info-grid">${EXTRA_FIELDS.filter(f => p[f.key]).map(f =>
+            `<div class="info-cell">${ms(f.icon)}<div><small>${esc(f.label)}</small><b>${esc(p[f.key])}</b></div></div>`).join('')}</div>` : ''}
         ${p.notes ? `<div class="detail-notes">${esc(p.notes)}</div>` : '<div class="muted small" style="margin-bottom:12px">אין הערות</div>'}
         <div class="detail-actions">
             <a class="btn btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}">${ms('navigation')} ניווט</a>
@@ -701,7 +768,7 @@ function filteredPoints() {
     return points.filter(p => {
         if ($('listMine').checked && (!u || p.user_id !== u.id)) return false;
         if (!q) return true;
-        return [p.location_name, p.reporter_name, p.notes].some(s => (s || '').toLowerCase().includes(q));
+        return [p.location_name, p.reporter_name, p.notes, ...EXTRA_FIELDS.map(f => p[f.key])].some(s => (s || '').toLowerCase().includes(q));
     });
 }
 function renderList() {
@@ -713,6 +780,7 @@ function renderList() {
             <div class="li-body">
                 <div class="li-title">${esc(p.location_name)}</div>
                 <div class="li-meta">${esc(p.reporter_name)} · ${esc(fmtDate(p.created_at))}${p.photos.length ? ' · 📷 ' + p.photos.length : ''}</div>
+                ${(p.site_type || p.project_status) ? `<div class="li-tags">${[p.site_type, p.project_status].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
                 ${p.notes ? `<div class="li-notes">${esc(p.notes)}</div>` : ''}
             </div>
         </li>`).join('') : '<li class="empty">לא נמצאו נקודות</li>';
@@ -749,6 +817,7 @@ $('exportGeojson').addEventListener('click', () => {
             geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
             properties: {
                 id: p.id, location_name: p.location_name, reporter_name: p.reporter_name, notes: p.notes,
+                ...Object.fromEntries(EXTRA_FIELDS.map(f => [f.key, p[f.key] || ''])),
                 accuracy_m: p.accuracy_m, created_at: p.created_at, updated_at: p.updated_at, photos: publicPhotos(p)
             }
         }))
@@ -761,12 +830,12 @@ function exportCsv() {
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const maxPh = Math.max(0, ...list.map(p => publicPhotos(p).length));
     const appLink = id => location.origin + location.pathname + '?p=' + id;
-    const head = ['מזהה', 'שם המיקום', 'שם המזין', 'הערות', 'קו רוחב (lat)', 'קו אורך (lng)', 'דיוק GPS (מ\')',
+    const head = ['מזהה', 'שם המיקום', 'שם המזין', ...EXTRA_FIELDS.map(f => f.label), 'הערות', 'קו רוחב (lat)', 'קו אורך (lng)', 'דיוק GPS (מ\')',
         'תאריך הזנה', 'תאריך עדכון', 'מספר תמונות', 'קישור למפה', 'קישור ביישום']
         .concat(Array.from({ length: maxPh }, (_, i) => 'תמונה ' + (i + 1)));
     const rows = list.map(p => {
         const ph = publicPhotos(p);
-        return [p.id, p.location_name, p.reporter_name, p.notes, p.lat.toFixed(6), p.lng.toFixed(6), p.accuracy_m,
+        return [p.id, p.location_name, p.reporter_name, ...EXTRA_FIELDS.map(f => p[f.key] || ''), p.notes, p.lat.toFixed(6), p.lng.toFixed(6), p.accuracy_m,
             fmtDate(p.created_at), p.updated_at ? fmtDate(p.updated_at) : '', p.photo_paths.length,
             `https://www.google.com/maps?q=${p.lat},${p.lng}`, appLink(p.id)]
             .concat(Array.from({ length: maxPh }, (_, i) => ph[i] || ''));
@@ -816,6 +885,7 @@ async function init() {
     onAuthChanged();
     store.subscribe(() => { clearTimeout(init._t); init._t = setTimeout(loadPoints, 400); });
     await loadPoints();
+    store.listOptions().then(o => { managedOptions = o || []; }).catch(() => { });
 
     if (points.length && !new URLSearchParams(location.search).get('p')) {
         map.fitBounds(L.latLngBounds(points.map(p => [p.lat, p.lng])).pad(0.2), { maxZoom: 15 });

@@ -14,6 +14,7 @@
 // point = {id,user_id,location_name,reporter_name,notes,lat,lng,accuracy_m,
 //          photo_paths:[], photos:[url], created_at, updated_at}
 import { SUPABASE_URL, SUPABASE_KEY, TABLE, PHOTO_BUCKET } from './config.js';
+// listOptions() → [{field, value}]   רשימת ערכים מנוהלת להשלמה אוטומטית (טבלת field_options)
 
 const SB_SDK = 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
@@ -115,6 +116,11 @@ async function supabaseStore() {
             const { data, error } = await sb.from(TABLE).select('*').order('created_at', { ascending: false }).limit(5000);
             if (error) throw new Error(error.message);
             return data.map(hydrate);
+        },
+
+        async listOptions() {
+            const { data, error } = await sb.from('field_options').select('field,value').limit(5000);
+            return error ? [] : data;          // הטבלה אופציונלית
         },
 
         subscribe(cb) {
@@ -264,6 +270,7 @@ async function demoStore(reason) {
             return Promise.all(rows.map(hydrate));
         },
         subscribe(cb) { listeners.push(cb); },
+        async listOptions() { return []; },     // במצב הדגמה — הצעות מתוך הנקודות שהוזנו
 
         async createPoint(fields, blobs, onProgress) {
             requireOwner();
@@ -278,10 +285,9 @@ async function demoStore(reason) {
         async updatePoint(point, fields, newBlobs, removedPaths, onProgress) {
             requireOwner(point);
             const added = await putPhotos(user.id, point.id, newBlobs, onProgress);
+            const { photos: _hydrated, ...base } = point;
             const row = {
-                id: point.id, user_id: point.user_id, created_at: point.created_at,
-                lat: point.lat, lng: point.lng, accuracy_m: point.accuracy_m,
-                location_name: point.location_name, reporter_name: point.reporter_name, notes: point.notes,
+                ...base,
                 ...fields,
                 photo_paths: point.photo_paths.filter(p => !removedPaths.includes(p)).concat(added),
                 updated_at: new Date().toISOString()

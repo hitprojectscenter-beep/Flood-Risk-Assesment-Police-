@@ -68,3 +68,32 @@ create policy fph_insert_own on storage.objects for insert to authenticated
   with check (bucket_id = 'field-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy fph_delete_own on storage.objects for delete to authenticated
   using (bucket_id = 'field-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ----------------------------------------------------------------------------
+-- שדות נוספים לנקודה (טקסט חופשי): סוג אתר, סטטוס פרויקט, שיוך למערך, איש/אשת קשר במנהלת תקומה
+-- ----------------------------------------------------------------------------
+alter table public.field_points add column if not exists site_type      text not null default '' check (char_length(site_type) <= 200);
+alter table public.field_points add column if not exists project_status text not null default '' check (char_length(project_status) <= 200);
+alter table public.field_points add column if not exists org_unit       text not null default '' check (char_length(org_unit) <= 200);
+alter table public.field_points add column if not exists tkuma_contact  text not null default '' check (char_length(tkuma_contact) <= 200);
+
+-- ----------------------------------------------------------------------------
+-- רשימת ערכים מנוהלת להשלמה אוטומטית (ניתן לערוך דרך Table Editor ב-Supabase)
+-- field: site_type | project_status | org_unit | tkuma_contact
+-- ----------------------------------------------------------------------------
+create table if not exists public.field_options (
+  id     bigserial primary key,
+  field  text not null check (field in ('site_type','project_status','org_unit','tkuma_contact')),
+  value  text not null check (char_length(value) between 1 and 200),
+  unique (field, value)
+);
+alter table public.field_options enable row level security;
+drop policy if exists fo_read_all on public.field_options;
+create policy fo_read_all on public.field_options for select to anon, authenticated using (true);
+-- אין מדיניות כתיבה: רק מנהלי המערכת (Dashboard / service role) מעדכנים את הרשימה.
+
+-- ערכי פתיחה לדוגמה — ניתן למחוק/לשנות
+insert into public.field_options (field, value) values
+  ('site_type', 'מבנה ציבור'), ('site_type', 'מוסד חינוך'), ('site_type', 'תשתית'), ('site_type', 'מגורים'), ('site_type', 'שטח חקלאי'),
+  ('project_status', 'בתכנון'), ('project_status', 'בביצוע'), ('project_status', 'הושלם'), ('project_status', 'מושהה')
+on conflict (field, value) do nothing;

@@ -67,3 +67,15 @@ export const LAYERS = [
         opt: { layers: '', format: 'image/png', transparent: true, minZoom: 14, maxZoom: 20, attribution: '© המרכז למיפוי ישראל' }
     }
 ];
+
+// ---------------------------------------------------------------------------
+// שדות נוספים לנקודה — טקסט חופשי עם השלמה אוטומטית.
+// ההצעות נלקחות מ: (1) רשימת ערכים מנוהלת בטבלה field_options במסד הנתונים,
+// (2) ערכים שכבר הוזנו בנקודות קיימות (לפי שכיחות).
+// ---------------------------------------------------------------------------
+export const EXTRA_FIELDS = [
+    { key: 'site_type', label: 'סוג אתר', icon: 'category', placeholder: 'לדוגמה: מבנה ציבור, תשתית, מגורים' },
+    { key: 'project_status', label: 'סטטוס הפרויקט', icon: 'flag', placeholder: 'לדוגמה: בתכנון, בביצוע, הושלם' },
+    { key: 'org_unit', label: 'שיוך למערך', icon: 'account_tree', placeholder: 'המערך שאליו משויך האתר' },
+    { key: 'tkuma_contact', label: 'איש/אשת קשר במנהלת תקומה', icon: 'contact_phone', placeholder: 'שם ופרטי קשר' }
+];
