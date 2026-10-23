@@ -214,6 +214,15 @@ after toggling off only the heat canvas remains and native SVG clicks work,
 re-enabling re-adds canvases with recolor + fallback intact.
 Cache version: ?v=20260917c.
 
+### Session 8 — 2026-10-23 — New sub-app: field-collect (יומן שטח)
+Mobile GIS field data-collection PWA in `field-collect/` (separate Vercel project,
+Root Directory `field-collect`). Tap a point on the map (or use GPS) → enter location
+name, reporter name, notes, up to 10 photos. Viewing is public; adding requires sign-up.
+Engines: Supabase auth/DB/storage + RLS from `field-nav-app` (same project), Leaflet +
+glassmorphism design from TSRS. Setup: run `field-collect/supabase/field_points.sql`
+in the Supabase SQL editor; until then the app falls back to local demo mode (IndexedDB).
+See `field-collect/README.md`.
+
 ## Project Structure
 ```
 tsrs-app/

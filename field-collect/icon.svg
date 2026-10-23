@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="pin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2DD4BF"/>
+      <stop offset="1" stop-color="#0D9488"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- contour lines -->
+  <g fill="none" stroke="#14B8A6" stroke-opacity="0.28" stroke-width="10">
+    <path d="M40 380 C140 330 220 420 320 370 S470 330 480 340"/>
+    <path d="M40 430 C150 390 240 470 340 420 S470 390 480 400"/>
+    <path d="M40 330 C130 280 200 360 300 320 S460 280 480 290"/>
+  </g>
+  <!-- map pin -->
+  <path d="M256 70 C178 70 120 128 120 204 C120 300 256 420 256 420 C256 420 392 300 392 204 C392 128 334 70 256 70 Z"
+        fill="url(#pin)" stroke="#fff" stroke-width="14"/>
+  <!-- camera -->
+  <rect x="196" y="168" width="120" height="84" rx="16" fill="#fff"/>
+  <rect x="226" y="152" width="40" height="22" rx="6" fill="#fff"/>
+  <circle cx="256" cy="210" r="26" fill="#0D9488"/>
+  <circle cx="256" cy="210" r="12" fill="#fff"/>
+</svg>

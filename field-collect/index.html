@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0F172A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="יישום GIS לאיסוף נתונים בשטח — דקירת נקודה במפה והזנת שם מיקום, שם מזין, הערות ותמונות">
+    <title>יומן שטח — איסוף נתונים</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+    <link rel="stylesheet" href="css/style.css?v=20261023">
+</head>
+<body>
+    <!-- ===== Header ===== -->
+    <header id="app-header">
+        <div class="brand">
+            <img src="icon.svg" alt="" class="brand-icon">
+            <div>
+                <h1>יומן שטח</h1>
+                <span class="brand-sub">איסוף נתונים במפה</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button id="listBtn" class="hbtn" title="רשימת נקודות" aria-label="רשימת נקודות">
+                ☰ <span id="pointCount" class="badge">0</span>
+            </button>
+            <button id="userBtn" class="hbtn" title="חשבון" aria-label="חשבון">
+                <span id="userBtnLabel">כניסה</span>
+            </button>
+        </div>
+    </header>
+
+    <div id="modeBanner" class="mode-banner" hidden></div>
+
+    <main id="map" aria-label="מפה"></main>
+
+    <!-- בחירת מיקום -->
+    <div id="placeBanner" class="place-banner" hidden>
+        <div class="place-text">📍 הקישו על המפה במקום הנקודה</div>
+        <div class="place-actions">
+            <button id="placeGpsBtn" class="btn btn-sm">🎯 המיקום שלי</button>
+            <button id="placeCancelBtn" class="btn btn-sm btn-ghost">ביטול</button>
+        </div>
+    </div>
+
+    <!-- כפתורי מפה -->
+    <div class="map-fabs">
+        <button id="layersBtn" class="fab-sm" title="שכבות מפה" aria-label="שכבות מפה">🗺️</button>
+        <button id="locateBtn" class="fab-sm" title="המיקום שלי" aria-label="המיקום שלי">🎯</button>
+    </div>
+    <button id="addBtn" class="fab-main" aria-label="דקירת נקודה חדשה">
+        <span class="plus">＋</span><span class="fab-label">דקירת נקודה</span>
+    </button>
+
+    <div id="backdrop" class="backdrop"></div>
+
+    <!-- ===== Auth sheet ===== -->
+    <section id="authSheet" class="sheet" aria-label="חשבון">
+        <div class="sheet-handle"></div>
+        <button class="sheet-close" data-close aria-label="סגירה">✕</button>
+        <div id="authLoggedOut">
+            <div id="authNote" class="note" hidden></div>
+            <div class="tabs">
+                <button class="tab active" data-tab="login">התחברות</button>
+                <button class="tab" data-tab="signup">הרשמה</button>
+            </div>
+            <form id="authForm" autocomplete="on" novalidate>
+                <label class="field signup-only" hidden>
+                    <span>שם מלא</span>
+                    <input id="authName" type="text" maxlength="80" autocomplete="name" placeholder="השם שיוצג כמזין הנתונים">
+                </label>
+                <label class="field">
+                    <span>אימייל</span>
+                    <input id="authEmail" type="email" inputmode="email" autocomplete="email" required placeholder="name@example.com" dir="ltr">
+                </label>
+                <label class="field">
+                    <span>סיסמה</span>
+                    <input id="authPass" type="password" minlength="6" autocomplete="current-password" required placeholder="לפחות 6 תווים" dir="ltr">
+                </label>
+                <div id="authMsg" class="msg" role="status"></div>
+                <button id="authSubmit" type="submit" class="btn btn-block">התחברות</button>
+            </form>
+            <p class="hint">צפייה בנתונים פתוחה לכולם. הרשמה נדרשת רק כדי לדקור נקודות ולהזין נתונים.</p>
+        </div>
+        <div id="authLoggedIn" hidden>
+            <div class="profile">
+                <div id="profAvatar" class="avatar"></div>
+                <div>
+                    <div id="profName" class="prof-name"></div>
+                    <div id="profEmail" class="prof-email" dir="ltr"></div>
+                </div>
+            </div>
+            <div id="profStats" class="prof-stats"></div>
+            <button id="myPointsBtn" class="btn btn-block btn-ghost">הנקודות שלי</button>
+            <button id="logoutBtn" class="btn btn-block btn-danger">התנתקות</button>
+        </div>
+    </section>
+
+    <!-- ===== Point form sheet ===== -->
+    <section id="formSheet" class="sheet sheet-tall" aria-label="הזנת נתונים">
+        <div class="sheet-handle"></div>
+        <button class="sheet-close" id="formClose" aria-label="סגירה">✕</button>
+        <h2 id="formTitle">נקודה חדשה</h2>
+        <form id="pointForm" novalidate>
+            <div class="coords-row">
+                <span class="coords-label">מיקום:</span>
+                <span id="formCoords" class="coords" dir="ltr"></span>
+                <button type="button" id="formRelocate" class="btn btn-xs btn-ghost">📍 שינוי</button>
+            </div>
+            <p class="hint small">ניתן לגרור את הסמן במפה כדי לדייק את המיקום</p>
+
+            <label class="field">
+                <span>שם המיקום <b class="req">*</b></span>
+                <input id="fName" type="text" maxlength="120" required placeholder="לדוגמה: גשר נחל השופט">
+            </label>
+            <label class="field">
+                <span>שם המזין <b class="req">*</b></span>
+                <input id="fReporter" type="text" maxlength="80" required autocomplete="name">
+            </label>
+            <label class="field">
+                <span>הערות</span>
+                <textarea id="fNotes" rows="4" maxlength="2000" placeholder="תיאור, ממצאים, מצב בשטח…"></textarea>
+            </label>
+
+            <div class="field">
+                <span>תמונות <small id="photoCount" class="muted"></small></span>
+                <div id="photoGrid" class="photo-grid">
+                    <label class="photo-add" id="photoAddCamera" title="צילום">
+                        <input id="fCamera" type="file" accept="image/*" capture="environment" hidden>
+                        <span>📷</span><small>צילום</small>
+                    </label>
+                    <label class="photo-add" id="photoAddGallery" title="מהגלריה">
+                        <input id="fPhotos" type="file" accept="image/*" multiple hidden>
+                        <span>🖼️</span><small>גלריה</small>
+                    </label>
+                </div>
+            </div>
+
+            <div id="formMsg" class="msg" role="status"></div>
+            <div class="form-actions">
+                <button id="formSubmit" type="submit" class="btn btn-block">💾 שמירת נקודה</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- ===== Point detail sheet ===== -->
+    <section id="detailSheet" class="sheet" aria-label="פרטי נקודה">
+        <div class="sheet-handle"></div>
+        <button class="sheet-close" data-close aria-label="סגירה">✕</button>
+        <div id="detailBody"></div>
+    </section>
+
+    <!-- ===== List sheet ===== -->
+    <section id="listSheet" class="sheet sheet-tall" aria-label="רשימת נקודות">
+        <div class="sheet-handle"></div>
+        <button class="sheet-close" data-close aria-label="סגירה">✕</button>
+        <h2>נקודות שנאספו <small id="listCount" class="muted"></small></h2>
+        <div class="list-tools">
+            <input id="listSearch" type="search" placeholder="🔍 חיפוש לפי שם, מזין או הערות">
+            <label class="chk"><input id="listMine" type="checkbox"> שלי בלבד</label>
+        </div>
+        <ul id="pointList" class="point-list"></ul>
+        <div class="list-export">
+            <button id="exportGeojson" class="btn btn-sm btn-ghost">⬇ GeoJSON</button>
+            <button id="exportCsv" class="btn btn-sm btn-ghost">⬇ CSV</button>
+        </div>
+    </section>
+
+    <!-- ===== Layers sheet ===== -->
+    <section id="layersSheet" class="sheet" aria-label="שכבות מפה">
+        <div class="sheet-handle"></div>
+        <button class="sheet-close" data-close aria-label="סגירה">✕</button>
+        <h2>שכבות מפה</h2>
+        <div id="baseLayers" class="layer-grid"></div>
+        <label class="chk layer-overlay"><input id="hillshadeChk" type="checkbox"> 🏔️ הצללת תבליט (Hillshade)</label>
+    </section>
+
+    <!-- ===== Lightbox ===== -->
+    <div id="lightbox" class="lightbox" hidden>
+        <button class="lb-close" aria-label="סגירה">✕</button>
+        <button class="lb-nav lb-prev" aria-label="הקודמת">›</button>
+        <img id="lbImg" alt="">
+        <button class="lb-nav lb-next" aria-label="הבאה">‹</button>
+        <div id="lbCount" class="lb-count"></div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script type="module" src="js/app.js?v=20261023"></script>
+</body>
+</html>
