@@ -1,12 +1,14 @@
 // יומן שטח — בקר ראשי: מפה, דקירת נקודה, טופס הזנה, צפייה, רשימה, ייצוא.
 import { createStore } from './store.js';
 import { resizeImage } from './photos.js';
-import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM } from './config.js';
+import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS } from './config.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDate = iso => new Date(iso).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
 const fmtCoord = (lat, lng) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+const ms = name => `<span class="ms">${name}</span>`;                 // Material Symbols icon
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (_) { } };
 
 let store = null;
 let points = [];
@@ -69,55 +71,61 @@ const map = L.map('map', { zoomControl: false, center: MAP_CENTER, zoom: MAP_ZOO
 L.control.zoom({ position: 'topleft' }).addTo(map);
 L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
 
-const BASES = {
-    street: {
-        label: 'רחובות', icon: '🏙️',
-        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        opt: { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
-    },
-    hiking: {
-        label: 'שבילים', icon: '🥾',
-        url: 'https://israelhiking.osm.org.il/Hebrew/Tiles/{z}/{x}/{y}.png',
-        opt: { maxZoom: 19, maxNativeZoom: 16, attribution: '<a href="https://israelhiking.osm.org.il">Israel Hiking Map</a> · © OpenStreetMap' }
-    },
-    topo: {
-        label: 'טופוגרפית', icon: '⛰️',
-        url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-        opt: { maxZoom: 19, maxNativeZoom: 17, subdomains: 'abc', attribution: '<a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA) · © OpenStreetMap' }
-    },
-    satellite: {
-        label: 'צילום אוויר', icon: '🛰️',
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        opt: { maxZoom: 19, attribution: 'Esri, Maxar, Earthstar Geographics' }
-    },
-    dark: {
-        label: 'כהה', icon: '🌙',
-        url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        opt: { maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap © CARTO' }
-    }
+// שכבות (js/config.js → LAYERS): OSM · אורתופוטו מפ"י · מבנים מפ"י
+const layerDef = l => (l.url ? { url: l.url, opt: l.opt, sub: l.sub, pending: false }
+    : l.fallback ? { url: l.fallback.url, opt: l.fallback.opt, sub: l.fallback.sub, pending: true }
+        : { url: '', opt: l.opt, sub: 'ממתינה לחיבור', pending: true });
+const makeLayer = l => {
+    const d = layerDef(l);
+    if (!d.url) return null;
+    return l.type === 'wms' ? L.tileLayer.wms(d.url, d.opt) : L.tileLayer(d.url, d.opt);
 };
+const BASES = LAYERS.filter(l => l.group === 'base');
+const OVERLAYS = LAYERS.filter(l => l.group === 'overlay');
 let baseLayer = null;
-let baseKey = localStorage.getItem('fc_base') || 'street';
-if (!BASES[baseKey]) baseKey = 'street';
+let baseKey = localStorage.getItem('fc_base2') || BASES[0].id;
+if (!BASES.some(l => l.id === baseKey)) baseKey = BASES[0].id;
 function setBase(key) {
+    const def = BASES.find(l => l.id === key);
+    const lyr = makeLayer(def);
+    if (!lyr) return toast('שכבה זו ממתינה לחיבור שירות המרכז למיפוי ישראל', 'err');
     if (baseLayer) map.removeLayer(baseLayer);
-    baseLayer = L.tileLayer(BASES[key].url, BASES[key].opt).addTo(map);
+    baseLayer = lyr.addTo(map);
     baseLayer.bringToBack();
     baseKey = key;
-    try { localStorage.setItem('fc_base', key); } catch (_) { }
+    try { localStorage.setItem('fc_base2', key); } catch (_) { }
     document.querySelectorAll('#baseLayers .layer-card').forEach(c => c.classList.toggle('active', c.dataset.key === key));
 }
-$('baseLayers').innerHTML = Object.entries(BASES).map(([k, b]) =>
-    `<button class="layer-card" data-key="${k}"><span>${b.icon}</span>${b.label}</button>`).join('');
+const isMapi = l => l.id.startsWith('mapi');
+$('baseLayers').innerHTML = BASES.map(l => {
+    const d = layerDef(l);
+    return `<button class="layer-card" data-key="${l.id}">
+        <span class="ic">${ms(l.icon)}</span><b>${esc(l.label)}</b><small>${esc(d.sub)}</small>
+        ${isMapi(l) ? `<span class="badge-mapi ${d.pending ? 'badge-wait' : ''}">${d.pending ? 'ממתין לחיבור מפ"י' : 'מפ"י'}</span>` : ''}
+    </button>`;
+}).join('');
 $('baseLayers').addEventListener('click', e => {
     const c = e.target.closest('.layer-card');
-    if (c) setBase(c.dataset.key);
+    if (c) { setBase(c.dataset.key); buzz(8); }
 });
 setBase(baseKey);
 
-const hillshade = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',
-    { maxZoom: 19, maxNativeZoom: 16, opacity: 0.45, attribution: '© Esri Hillshade' });
-$('hillshadeChk').addEventListener('change', e => { e.target.checked ? hillshade.addTo(map) : map.removeLayer(hillshade); });
+const overlayOn = new Map();
+$('overlayLayers').innerHTML = OVERLAYS.map(l => {
+    const d = layerDef(l);
+    return `<label class="overlay-row">
+        <span class="ic">${ms(l.icon)}</span>
+        <span class="txt"><b>${esc(l.label)}</b><small>${esc(d.url ? d.sub : 'ממתינה לחיבור שירות')}</small>
+            ${isMapi(l) ? `<span class="badge-mapi ${d.pending ? 'badge-wait' : ''}">${d.pending ? 'ממתין לחיבור מפ"י' : 'מפ"י'}</span>` : ''}</span>
+        <span class="switch"><input type="checkbox" data-key="${l.id}" ${d.url ? '' : 'disabled'}><span></span></span>
+    </label>`;
+}).join('');
+$('overlayLayers').addEventListener('change', e => {
+    const key = e.target.dataset.key;
+    const def = OVERLAYS.find(l => l.id === key);
+    if (e.target.checked) { const lyr = makeLayer(def); if (lyr) overlayOn.set(key, lyr.addTo(map)); }
+    else if (overlayOn.has(key)) { map.removeLayer(overlayOn.get(key)); overlayOn.delete(key); }
+});
 $('layersBtn').addEventListener('click', () => openSheet('layersSheet'));
 
 // ---- המיקום שלי ----
@@ -135,7 +143,7 @@ function getGps() {
 function showMe(c) {
     const ll = [c.latitude, c.longitude];
     if (!meMarker) {
-        meMarker = L.circleMarker(ll, { radius: 8, color: '#fff', weight: 3, fillColor: '#3B82F6', fillOpacity: 1, interactive: false }).addTo(map);
+        meMarker = L.marker(ll, { interactive: false, icon: L.divIcon({ className: 'pin-wrap', html: '<div class="me-dot"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }) }).addTo(map);
         meCircle = L.circle(ll, { radius: c.accuracy, color: '#3B82F6', weight: 1, fillOpacity: 0.12, interactive: false }).addTo(map);
     } else {
         meMarker.setLatLng(ll); meCircle.setLatLng(ll).setRadius(c.accuracy);
@@ -163,7 +171,7 @@ function pinIcon(p, active) {
     const n = p.photo_paths.length;
     return L.divIcon({
         className: 'pin-wrap',
-        html: `<div class="pin ${mine ? 'mine' : ''} ${active ? 'active' : ''}"><span>${n ? '📷' : '📍'}</span>${n > 1 ? `<b>${n}</b>` : ''}</div>`,
+        html: `<div class="pin ${mine ? 'mine' : ''} ${active ? 'active' : ''}">${ms(n ? 'photo_camera' : 'location_on')}${n > 1 ? `<b>${n}</b>` : ''}</div>`,
         iconSize: [34, 42], iconAnchor: [17, 40]
     });
 }
@@ -176,7 +184,36 @@ function renderMarkers() {
         markers.set(p.id, m);
     });
     cluster.addLayers([...markers.values()]);
-    $('pointCount').textContent = points.length;
+    updateStats();
+}
+// מונים מונפשים (כותרת + מסך פתיחה)
+function countTo(el, n) {
+    const from = +el.dataset.n || 0;
+    el.dataset.n = n;
+    const t0 = performance.now(), dur = 900;
+    const step = t => {
+        const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        el.textContent = Math.round(from + (n - from) * e).toLocaleString('he-IL');
+        if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+}
+function updateStats() {
+    const photos = points.reduce((s, p) => s + p.photo_paths.length, 0);
+    const users = new Set(points.map(p => p.user_id)).size;
+    countTo($('pointCount'), points.length);
+    countTo($('statPhotos'), photos);
+    countTo($('splashPoints'), points.length);
+    countTo($('splashPhotos'), photos);
+    countTo($('splashUsers'), users);
+}
+function ripple(latlng) {
+    const pt = map.latLngToContainerPoint(latlng);
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.left = pt.x + 'px'; r.style.top = pt.y + 'px';
+    document.body.appendChild(r);
+    setTimeout(() => r.remove(), 1000);
 }
 let highlighted = null;
 function highlight(id) {
@@ -284,7 +321,7 @@ $('myPointsBtn').addEventListener('click', () => { $('listMine').checked = true;
 
 function onAuthChanged() {
     const u = store.getUser();
-    $('userBtnLabel').textContent = u ? '👤 ' + u.name : 'כניסה';
+    $('userBtnLabel').textContent = u ? u.name : 'כניסה / הרשמה';
     $('userBtn').classList.toggle('logged', !!u);
     renderMarkers();
     if (detailId && $('detailSheet').classList.contains('open')) renderDetail(detailId);
@@ -344,11 +381,12 @@ map.on('click', e => { if (placing) setDraft(e.latlng, null); });
 
 function setDraft(latlng, accuracy) {
     stopPlacing();
+    buzz(15);
     draft = { lat: latlng.lat, lng: latlng.lng, accuracy_m: accuracy };
     if (!draftMarker) {
         draftMarker = L.marker(latlng, {
             draggable: true, zIndexOffset: 1000,
-            icon: L.divIcon({ className: 'pin-wrap', html: '<div class="pin draft"><span>✚</span></div>', iconSize: [34, 42], iconAnchor: [17, 40] })
+            icon: L.divIcon({ className: 'pin-wrap', html: `<div class="pin draft">${ms('add_location_alt')}</div>`, iconSize: [34, 42], iconAnchor: [17, 40] })
         }).addTo(map);
         draftMarker.on('dragend', () => {
             const ll = draftMarker.getLatLng();
@@ -466,6 +504,8 @@ $('pointForm').addEventListener('submit', async e => {
         closeSheet('formSheet');
         await loadPoints();
         toast(wasEdit ? 'הנקודה עודכנה ✓' : 'הנקודה נשמרה ✓', 'ok');
+        buzz([20, 60, 20]);
+        setTimeout(() => ripple([saved.lat, saved.lng]), 450);
         openDetail(saved.id);
     } catch (err) {
         setMsg('formMsg', err.message, false);
@@ -497,25 +537,31 @@ function renderDetail(id) {
     const u = store.getUser();
     const mine = u && u.id === p.user_id;
     const edited = p.updated_at && p.updated_at.slice(0, 16) !== p.created_at.slice(0, 16);
+    const n = p.photos.length;
+    $('detailSheet').classList.toggle('has-hero', n > 0);
     $('detailBody').innerHTML = `
+        ${n ? `<div class="hero">
+            <div class="hero-track">${p.photos.map((url, i) =>
+                `<button class="dphoto" data-i="${i}"><img src="${esc(url)}" alt="תמונה ${i + 1}" ${i ? 'loading="lazy"' : ''}></button>`).join('')}</div>
+            ${n > 1 ? `<span class="hero-count">${ms('photo_library')} ${n} תמונות · החליקו</span>` : ''}
+        </div>` : ''}
         <h2 class="detail-title">${esc(p.location_name)}</h2>
         <div class="detail-meta">
-            <span>👤 ${esc(p.reporter_name)}</span>
-            <span>🕒 ${esc(fmtDate(p.created_at))}${edited ? ' · עודכן ' + esc(fmtDate(p.updated_at)) : ''}</span>
+            <span>${ms('person')} ${esc(p.reporter_name)}</span>
+            <span>${ms('schedule')} ${esc(fmtDate(p.created_at))}</span>
+            ${edited ? `<span>${ms('edit')} עודכן ${esc(fmtDate(p.updated_at))}</span>` : ''}
         </div>
         <div class="coords-row">
             <span class="coords" dir="ltr">${fmtCoord(p.lat, p.lng)}${p.accuracy_m ? ` (±${p.accuracy_m}m)` : ''}</span>
-            <button class="btn btn-xs btn-ghost" data-act="copy">📋 העתקה</button>
+            <button class="btn btn-xs btn-ghost" data-act="copy">${ms('content_copy')} העתקה</button>
         </div>
-        ${p.notes ? `<div class="detail-notes">${esc(p.notes)}</div>` : '<div class="muted small">אין הערות</div>'}
-        ${p.photos.length ? `<div class="detail-photos">${p.photos.map((url, i) =>
-            `<button class="dphoto" data-i="${i}"><img src="${esc(url)}" alt="תמונה ${i + 1}" loading="lazy"></button>`).join('')}</div>` : ''}
+        ${p.notes ? `<div class="detail-notes">${esc(p.notes)}</div>` : '<div class="muted small" style="margin-bottom:12px">אין הערות</div>'}
         <div class="detail-actions">
-            <a class="btn btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}">🧭 ניווט</a>
-            <a class="btn btn-sm btn-ghost" target="_blank" rel="noopener" href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes">Waze</a>
-            <button class="btn btn-sm btn-ghost" data-act="share">🔗 שיתוף</button>
-            ${mine ? `<button class="btn btn-sm btn-ghost" data-act="edit">✏️ עריכה</button>
-                      <button class="btn btn-sm btn-danger" data-act="delete">🗑️ מחיקה</button>` : ''}
+            <a class="btn btn-sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}">${ms('navigation')} ניווט</a>
+            <a class="btn btn-sm btn-ghost" target="_blank" rel="noopener" href="https://waze.com/ul?ll=${p.lat},${p.lng}&navigate=yes">${ms('directions_car')} Waze</a>
+            <button class="btn btn-sm btn-ghost" data-act="share">${ms('share')} שיתוף</button>
+            ${mine ? `<button class="btn btn-sm btn-ghost" data-act="edit">${ms('edit')} עריכה</button>
+                      <button class="btn btn-sm btn-danger" data-act="delete">${ms('delete')} מחיקה</button>` : ''}
         </div>`;
 }
 
@@ -680,6 +726,27 @@ $('csvBtn').addEventListener('click', () => { $('listSearch').value = ''; $('lis
 // ============================================================================
 // Init
 // ============================================================================
+// ---- מיתוג + מסך פתיחה ----
+function initBrand() {
+    const img = new Image();
+    img.onload = () => {
+        [['brandLogo', 'brandMark'], ['splashLogo', 'splashMark']].forEach(([i, m]) => {
+            $(i).src = BRAND.LOGO_URL; $(i).hidden = false; $(m).hidden = true;
+        });
+        document.body.classList.add('has-logo');
+    };
+    img.src = BRAND.LOGO_URL;
+    const skip = new URLSearchParams(location.search).has('p') || sessionStorage.getItem('fc_splash_seen');
+    const hide = () => {
+        $('splash').classList.add('gone');
+        try { sessionStorage.setItem('fc_splash_seen', '1'); } catch (_) { }
+        setTimeout(() => map.invalidateSize(), 50);
+    };
+    if (skip) { $('splash').hidden = true; return; }
+    $('splashGo').addEventListener('click', () => { buzz(10); hide(); });
+}
+initBrand();
+
 async function init() {
     store = await createStore();
     if (store.mode === 'demo') {

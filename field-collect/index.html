@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0F172A">
+    <meta name="theme-color" content="#001d35">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="description" content="יישום GIS לאיסוף נתונים בשטח — דקירת נקודה במפה והזנת שם מיקום, שם מזין, הערות ותמונות">
@@ -15,50 +15,82 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-    <link rel="stylesheet" href="css/style.css?v=20261023b">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap">
+    <link rel="stylesheet" href="css/style.css?v=20261023d">
 </head>
 <body>
-    <!-- ===== Header ===== -->
-    <header id="app-header">
+    <!-- ===== Splash ===== -->
+    <div id="splash" class="splash" aria-hidden="false">
+        <div class="aurora"><i></i><i></i><i></i></div>
+        <div class="topo"></div>
+        <div class="grid-lines"></div>
+        <div class="splash-inner">
+            <div class="logo-ring">
+                <img id="splashLogo" class="org-logo" alt="מנהלת תקומה" hidden>
+                <div id="splashMark" class="org-mark"><span class="ms">explore</span></div>
+            </div>
+            <div class="splash-org">מנהלת תקומה</div>
+            <h1 class="splash-title">יומן <span class="grad">שטח</span></h1>
+            <div class="lux-hair"></div>
+            <p class="splash-tag">איסוף נתונים חכם מהשטח — דקירה, תיעוד, שיתוף</p>
+            <div class="splash-stats">
+                <div><b id="splashPoints">—</b><span>נקודות</span></div>
+                <div><b id="splashPhotos">—</b><span>תמונות</span></div>
+                <div><b id="splashUsers">—</b><span>מזינים</span></div>
+            </div>
+            <button id="splashGo" class="btn-glow shine">כניסה למפה <span class="ms">arrow_back</span></button>
+            <p class="splash-note">צפייה פתוחה לכולם · הזנת נתונים למשתמשים רשומים</p>
+        </div>
+    </div>
+
+    <main id="map" aria-label="מפה"></main>
+    <div class="map-vignette"></div>
+
+    <!-- ===== Floating header ===== -->
+    <header id="app-header" class="topbar">
         <div class="brand">
-            <img src="icon.svg" alt="" class="brand-icon">
-            <div>
+            <img id="brandLogo" class="brand-logo" alt="מנהלת תקומה" hidden>
+            <div id="brandMark" class="brand-mark"><span class="ms">explore</span></div>
+            <div class="brand-text">
                 <h1>יומן שטח</h1>
-                <span class="brand-sub">איסוף נתונים במפה</span>
+                <span class="brand-sub">מנהלת תקומה</span>
             </div>
         </div>
-        <div class="header-actions">
-            <button id="csvBtn" class="hbtn" title="הורדת כל הנתונים כקובץ CSV" aria-label="הורדת CSV">⬇ CSV</button>
-            <button id="listBtn" class="hbtn" title="רשימת נקודות" aria-label="רשימת נקודות">
-                ☰ <span id="pointCount" class="badge">0</span>
-            </button>
-            <button id="userBtn" class="hbtn" title="חשבון" aria-label="חשבון">
-                <span id="userBtnLabel">כניסה</span>
-            </button>
-        </div>
+        <button id="userBtn" class="user-chip" title="חשבון" aria-label="חשבון">
+            <span class="user-dot"></span><span id="userBtnLabel">כניסה</span>
+        </button>
     </header>
+
+    <div class="stats-chip" id="statsChip">
+        <span><span class="ms">location_on</span> <b id="pointCount">0</b> נקודות</span>
+        <span class="sep"></span>
+        <span><span class="ms">photo_camera</span> <b id="statPhotos">0</b> תמונות</span>
+    </div>
 
     <div id="modeBanner" class="mode-banner" hidden></div>
 
-    <main id="map" aria-label="מפה"></main>
-
     <!-- בחירת מיקום -->
     <div id="placeBanner" class="place-banner" hidden>
-        <div class="place-text">📍 הקישו על המפה במקום הנקודה</div>
+        <div class="place-pulse"></div>
+        <div class="place-text"><b>הקישו על המפה</b><span>במקום שבו נמצאת הנקודה</span></div>
         <div class="place-actions">
-            <button id="placeGpsBtn" class="btn btn-sm">🎯 המיקום שלי</button>
+            <button id="placeGpsBtn" class="btn btn-sm"><span class="ms">my_location</span> המיקום שלי</button>
             <button id="placeCancelBtn" class="btn btn-sm btn-ghost">ביטול</button>
         </div>
     </div>
 
-    <!-- כפתורי מפה -->
-    <div class="map-fabs">
-        <button id="layersBtn" class="fab-sm" title="שכבות מפה" aria-label="שכבות מפה">🗺️</button>
-        <button id="locateBtn" class="fab-sm" title="המיקום שלי" aria-label="המיקום שלי">🎯</button>
-    </div>
-    <button id="addBtn" class="fab-main" aria-label="דקירת נקודה חדשה">
-        <span class="plus">＋</span><span class="fab-label">דקירת נקודה</span>
-    </button>
+    <!-- ===== Bottom dock ===== -->
+    <nav class="dock" aria-label="פעולות">
+        <button id="layersBtn" class="dock-btn" aria-label="שכבות מפה"><span class="ms ic">layers</span><small>שכבות</small></button>
+        <button id="listBtn" class="dock-btn" aria-label="רשימת נקודות"><span class="ms ic">format_list_bulleted</span><small>רשימה</small></button>
+        <button id="addBtn" class="dock-add" aria-label="דקירת נקודה חדשה">
+            <span class="ring"></span><span class="ms plus">add_location_alt</span>
+        </button>
+        <button id="csvBtn" class="dock-btn" aria-label="הורדת CSV"><span class="ms ic">download</span><small>CSV</small></button>
+        <button id="locateBtn" class="dock-btn" aria-label="המיקום שלי"><span class="ms ic">my_location</span><small>מיקום</small></button>
+    </nav>
 
     <div id="backdrop" class="backdrop"></div>
 
@@ -99,8 +131,8 @@
                 </div>
             </div>
             <div id="profStats" class="prof-stats"></div>
-            <button id="myPointsBtn" class="btn btn-block btn-ghost">הנקודות שלי</button>
-            <button id="logoutBtn" class="btn btn-block btn-danger">התנתקות</button>
+            <button id="myPointsBtn" class="btn btn-block btn-ghost"><span class="ms">bookmarks</span> הנקודות שלי</button>
+            <button id="logoutBtn" class="btn btn-block btn-danger"><span class="ms">logout</span> התנתקות</button>
         </div>
     </section>
 
@@ -113,7 +145,7 @@
             <div class="coords-row">
                 <span class="coords-label">מיקום:</span>
                 <span id="formCoords" class="coords" dir="ltr"></span>
-                <button type="button" id="formRelocate" class="btn btn-xs btn-ghost">📍 שינוי</button>
+                <button type="button" id="formRelocate" class="btn btn-xs btn-ghost"><span class="ms">edit_location_alt</span> שינוי</button>
             </div>
             <p class="hint small">ניתן לגרור את הסמן במפה כדי לדייק את המיקום</p>
 
@@ -135,18 +167,18 @@
                 <div id="photoGrid" class="photo-grid">
                     <label class="photo-add" id="photoAddCamera" title="צילום">
                         <input id="fCamera" type="file" accept="image/*" capture="environment" hidden>
-                        <span>📷</span><small>צילום</small>
+                        <span class="ms">photo_camera</span><small>צילום</small>
                     </label>
                     <label class="photo-add" id="photoAddGallery" title="מהגלריה">
                         <input id="fPhotos" type="file" accept="image/*" multiple hidden>
-                        <span>🖼️</span><small>גלריה</small>
+                        <span class="ms">add_photo_alternate</span><small>גלריה</small>
                     </label>
                 </div>
             </div>
 
             <div id="formMsg" class="msg" role="status"></div>
             <div class="form-actions">
-                <button id="formSubmit" type="submit" class="btn btn-block">💾 שמירת נקודה</button>
+                <button id="formSubmit" type="submit" class="btn btn-block"><span class="ms">task_alt</span> שמירת נקודה</button>
             </div>
         </form>
     </section>
@@ -164,13 +196,13 @@
         <button class="sheet-close" data-close aria-label="סגירה">✕</button>
         <h2>נקודות שנאספו <small id="listCount" class="muted"></small></h2>
         <div class="list-tools">
-            <input id="listSearch" type="search" placeholder="🔍 חיפוש לפי שם, מזין או הערות">
+            <input id="listSearch" type="search" placeholder="חיפוש לפי שם, מזין או הערות">
             <label class="chk"><input id="listMine" type="checkbox"> שלי בלבד</label>
         </div>
         <ul id="pointList" class="point-list"></ul>
         <div class="list-export">
-            <button id="exportGeojson" class="btn btn-sm btn-ghost">⬇ GeoJSON</button>
-            <button id="exportCsv" class="btn btn-sm">⬇ הורדת CSV (כולל קישורי תמונות)</button>
+            <button id="exportGeojson" class="btn btn-sm btn-ghost"><span class="ms">data_object</span> GeoJSON</button>
+            <button id="exportCsv" class="btn btn-sm"><span class="ms">download</span> הורדת CSV (כולל קישורי תמונות)</button>
         </div>
     </section>
 
@@ -179,8 +211,11 @@
         <div class="sheet-handle"></div>
         <button class="sheet-close" data-close aria-label="סגירה">✕</button>
         <h2>שכבות מפה</h2>
+        <div class="sec-label">רקע</div>
         <div id="baseLayers" class="layer-grid"></div>
-        <label class="chk layer-overlay"><input id="hillshadeChk" type="checkbox"> 🏔️ הצללת תבליט (Hillshade)</label>
+        <div class="sec-label">שכבות-על</div>
+        <div id="overlayLayers" class="overlay-list"></div>
+        <p class="hint small">שכבות המרכז למיפוי ישראל מסומנות במפ"י. שכבה "ממתינה לחיבור" תופעל עם קבלת כתובת השירות.</p>
     </section>
 
     <!-- ===== Lightbox ===== -->
@@ -196,6 +231,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script type="module" src="js/app.js?v=20261023b"></script>
+    <script type="module" src="js/app.js?v=20261023d"></script>
 </body>
 </html>

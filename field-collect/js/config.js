@@ -18,3 +18,52 @@ export const PHOTO_QUALITY = 0.82;     // איכות JPEG
 
 export const MAP_CENTER = [31.6, 34.95];
 export const MAP_ZOOM = 8;
+
+// ---------------------------------------------------------------------------
+// מיתוג — לוגו מנהלת תקומה
+// יש להניח את קובץ הלוגו הרשמי בנתיב LOGO_URL (PNG/SVG, רקע שקוף מומלץ).
+// כל עוד הקובץ לא קיים — מוצג סמליל טקסט במקומו.
+// ---------------------------------------------------------------------------
+export const BRAND = {
+    org: 'מנהלת תקומה',
+    app: 'יומן שטח',
+    tagline: 'איסוף נתונים חכם מהשטח',
+    LOGO_URL: 'assets/tkuma-logo.png'
+};
+
+// ---------------------------------------------------------------------------
+// שכבות מפה
+// base    — שכבות רקע (נבחרת אחת)
+// overlay — שכבות-על (ניתן להפעיל כמה)
+// type: 'xyz' (תבנית {z}/{x}/{y}) או 'wms'
+// שכבה בלי url מוצגת כ"ממתינה להגדרה" — כך מוסיפים את שירותי המרכז למיפוי
+// ישראל (מפ"י) ברגע שמתקבלת כתובת השירות / מפתח GovMap לדומיין של היישום.
+// ---------------------------------------------------------------------------
+export const LAYERS = [
+    {
+        id: 'osm', group: 'base', label: 'OpenStreetMap', sub: 'מפת רחובות', icon: 'map',
+        type: 'xyz', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        opt: { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
+    },
+    {
+        id: 'mapi_ortho', group: 'base', label: 'אורתופוטו', sub: 'המרכז למיפוי ישראל', icon: 'satellite_alt',
+        type: 'xyz', url: '',            // ← כתובת שירות האורתופוטו של מפ"י
+        opt: { maxZoom: 20, attribution: '© המרכז למיפוי ישראל' },
+        // עד להגדרת שירות מפ"י — צילום אוויר חלופי, מסומן בבירור כחלופה
+        fallback: {
+            sub: 'זמני: Esri (עד חיבור מפ"י)',
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            opt: { maxZoom: 19, attribution: 'Esri, Maxar, Earthstar Geographics' }
+        }
+    },
+    {
+        id: 'dark', group: 'base', label: 'לילה', sub: 'רקע כהה', icon: 'dark_mode',
+        type: 'xyz', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        opt: { maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap © CARTO' }
+    },
+    {
+        id: 'mapi_buildings', group: 'overlay', label: 'מבנים', sub: 'המרכז למיפוי ישראל', icon: 'apartment',
+        type: 'wms', url: '',            // ← כתובת שירות WMS של שכבת המבנים (מפ"י / GovMap)
+        opt: { layers: '', format: 'image/png', transparent: true, minZoom: 14, maxZoom: 20, attribution: '© המרכז למיפוי ישראל' }
+    }
+];
