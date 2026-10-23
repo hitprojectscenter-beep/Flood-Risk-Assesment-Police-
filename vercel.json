@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "rm -rf frontend/field-collect && cp -r field-collect frontend/field-collect",
+  "buildCommand": "rm -rf frontend/field-collect && cp -r field-collect frontend/field-collect && rm -rf frontend/field-collect/qa frontend/field-collect/supabase",
   "outputDirectory": "frontend",
   "routes": [
     {

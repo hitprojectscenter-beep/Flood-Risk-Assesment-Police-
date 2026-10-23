@@ -247,16 +247,49 @@ async function loadPoints() {
 // ============================================================================
 // Auth
 // ============================================================================
-let authTab = 'login';
-function setAuthTab(tab) {
-    authTab = tab;
-    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    document.querySelectorAll('.signup-only').forEach(el => { el.hidden = tab !== 'signup'; });
-    $('authSubmit').textContent = tab === 'signup' ? 'הרשמה' : 'התחברות';
-    $('authPass').autocomplete = tab === 'signup' ? 'new-password' : 'current-password';
-    setMsg('authMsg', '');
+// ---- הזדהות בנייד + קוד SMS ----
+// 050-1234567 / 0501234567 / +972501234567 → +972501234567
+function normPhone(v) {
+    let d = String(v || '').replace(/[^\d+]/g, '');
+    if (d.startsWith('+972')) d = '0' + d.slice(4);
+    else if (d.startsWith('972')) d = '0' + d.slice(3);
+    return /^05\d{8}$/.test(d) ? '+972' + d.slice(1) : null;
 }
-document.querySelectorAll('.tabs .tab').forEach(t => t.addEventListener('click', () => setAuthTab(t.dataset.tab)));
+const prettyPhone = e164 => e164 ? ('0' + e164.slice(4)).replace(/^(\d{3})(\d+)$/, '$1-$2') : '';
+let otpCtx = null;              // { phone, first, last }
+let resendTimer = null;
+function authStep(n) {
+    $('authForm').hidden = n !== 1;
+    $('otpForm').hidden = n !== 2;
+    $('stepDot1').className = n === 1 ? 'on' : 'done';
+    $('stepDot2').className = n === 2 ? 'on' : '';
+    setMsg('authMsg', ''); setMsg('otpMsg', '');
+}
+function startResendCountdown() {
+    let left = 45;
+    const b = $('otpResend');
+    clearInterval(resendTimer);
+    b.disabled = true;
+    const tick = () => {
+        b.textContent = left > 0 ? `שליחה חוזרת (${left})` : 'שליחה חוזרת';
+        if (left-- <= 0) { clearInterval(resendTimer); b.disabled = false; }
+    };
+    tick();
+    resendTimer = setInterval(tick, 1000);
+}
+async function sendCode() {
+    const r = await store.sendOtp(otpCtx);
+    $('otpPhone').textContent = prettyPhone(otpCtx.phone);
+    $('otpForm').querySelectorAll('.demo-code').forEach(el => el.remove());
+    if (r && r.demoCode) {
+        const d = document.createElement('div');
+        d.className = 'demo-code';
+        d.innerHTML = `מצב הדגמה — לא נשלח SMS אמיתי. הקוד: <b dir="ltr">${r.demoCode}</b>`;
+        $('otpMsg').after(d);
+    }
+    startResendCountdown();
+}
+function setAuthTab() { authStep(otpCtx ? 2 : 1); }   // תאימות לקוד קיים (requireLogin)
 
 function setMsg(id, text, ok) {
     const el = $(id);
@@ -273,7 +306,7 @@ function openAuth(note) {
     if (u) {
         $('profAvatar').textContent = (u.name || '?').trim().charAt(0);
         $('profName').textContent = u.name;
-        $('profEmail').textContent = u.email;
+        $('profPhone').textContent = prettyPhone(u.phone);
         const mine = points.filter(p => p.user_id === u.id);
         const photos = mine.reduce((s, p) => s + p.photo_paths.length, 0);
         $('profStats').innerHTML = `<div><b>${mine.length}</b><span>נקודות</span></div><div><b>${photos}</b><span>תמונות</span></div>`;
@@ -284,34 +317,58 @@ $('userBtn').addEventListener('click', () => openAuth());
 
 $('authForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const email = $('authEmail').value.trim(), password = $('authPass').value, name = $('authName').value.trim();
-    if (!email || !password) return setMsg('authMsg', 'יש למלא אימייל וסיסמה', false);
-    if (authTab === 'signup' && !name) return setMsg('authMsg', 'יש למלא שם מלא', false);
+    const first = $('authFirst').value.trim(), last = $('authLast').value.trim(), phone = normPhone($('authPhone').value);
+    if (!first) { setMsg('authMsg', 'יש להזין שם פרטי', false); return $('authFirst').focus(); }
+    if (!last) { setMsg('authMsg', 'יש להזין שם משפחה', false); return $('authLast').focus(); }
+    if (!phone) { setMsg('authMsg', 'מספר נייד לא תקין — לדוגמה 050-1234567', false); return $('authPhone').focus(); }
     const btn = $('authSubmit');
     btn.disabled = true;
-    setMsg('authMsg', 'מתבצע…', true);
+    setMsg('authMsg', 'שולח קוד…', true);
     try {
-        if (authTab === 'signup') {
-            const r = await store.signUp({ email, password, name });
-            if (r.needsConfirm) {
-                setMsg('authMsg', 'נרשמת! נשלח אליך מייל אימות — אשר/י אותו ואז התחבר/י.', true);
-                setAuthTab('login');
-                setMsg('authMsg', 'נרשמת! נשלח אליך מייל אימות — אשר/י אותו ואז התחבר/י.', true);
-                return;
-            }
-        } else {
-            await store.signIn({ email, password });
-        }
-        $('authPass').value = '';
-        closeSheet('authSheet');
-        toast('ברוך/ה הבא/ה, ' + store.getUser().name, 'ok');
-        if (pendingAfterLogin) { const f = pendingAfterLogin; pendingAfterLogin = null; f(); }
+        otpCtx = { phone, first, last };
+        await sendCode();
+        authStep(2);
+        $('otpCode').value = '';
+        setTimeout(() => $('otpCode').focus(), 300);
     } catch (err) {
+        otpCtx = null;
         setMsg('authMsg', err.message, false);
     } finally {
         btn.disabled = false;
     }
 });
+$('otpForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const code = $('otpCode').value.replace(/\D/g, '');
+    if (code.length !== 6) return setMsg('otpMsg', 'יש להזין את 6 ספרות הקוד', false);
+    const btn = $('otpSubmit');
+    btn.disabled = true;
+    setMsg('otpMsg', 'מאמת…', true);
+    try {
+        await store.verifyOtp({ ...otpCtx, code });
+        otpCtx = null;
+        clearInterval(resendTimer);
+        authStep(1);
+        closeSheet('authSheet');
+        buzz([15, 40, 15]);
+        toast('ברוך/ה הבא/ה, ' + store.getUser().name, 'ok');
+        if (pendingAfterLogin) { const f = pendingAfterLogin; pendingAfterLogin = null; f(); }
+    } catch (err) {
+        setMsg('otpMsg', err.message, false);
+        $('otpCode').select();
+    } finally {
+        btn.disabled = false;
+    }
+});
+// שליחה אוטומטית כשהוזנו 6 ספרות (כולל מילוי אוטומטי מה-SMS)
+$('otpCode').addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    if (e.target.value.length === 6) $('otpForm').requestSubmit();
+});
+$('otpResend').addEventListener('click', async () => {
+    try { await sendCode(); setMsg('otpMsg', 'נשלח קוד חדש', true); } catch (err) { setMsg('otpMsg', err.message, false); }
+});
+$('otpBack').addEventListener('click', () => { otpCtx = null; clearInterval(resendTimer); authStep(1); $('authPhone').focus(); });
 $('logoutBtn').addEventListener('click', async () => {
     await store.signOut();
     closeSheet('authSheet');
@@ -330,7 +387,7 @@ function onAuthChanged() {
 function requireLogin(action, note) {
     if (store.getUser()) return true;
     pendingAfterLogin = action;
-    setAuthTab('login');
+    setAuthTab();
     openAuth(note || 'יש להתחבר או להירשם כדי לדקור נקודה ולהזין נתונים');
     return false;
 }

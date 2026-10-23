@@ -3,9 +3,10 @@
 //
 // ממשק אחיד לשני המימושים:
 //   mode, reason
-//   getUser() → {id,email,name} | null      onAuth(cb)
-//   signUp({email,password,name}) → {needsConfirm}
-//   signIn({email,password})   signOut()
+//   getUser() → {id,phone,first,last,name} | null      onAuth(cb)
+//   sendOtp({phone,first,last}) → {demoCode?}      (phone בפורמט E.164: +9725XXXXXXXX)
+//   verifyOtp({phone,code,first,last})              signOut()
+//   user = {id, phone, first, last, name}
 //   listPoints() → [point]     subscribe(cb)
 //   createPoint(fields, blobs, onProgress)
 //   updatePoint(point, fields, newBlobs, removedPaths, onProgress)
@@ -26,12 +27,11 @@ function photoPath(uid, pointId, i) {
 
 function hebAuthError(err) {
     const m = (err && err.message) || String(err);
-    if (/Invalid login credentials/i.test(m)) return 'אימייל או סיסמה שגויים';
-    if (/Email not confirmed/i.test(m)) return 'יש לאשר את כתובת האימייל (נשלח אליך קישור) ואז להתחבר';
-    if (/already registered|already exists/i.test(m)) return 'משתמש עם אימייל זה כבר רשום — התחבר/י';
-    if (/Password should be at least/i.test(m)) return 'הסיסמה קצרה מדי (לפחות 6 תווים)';
-    if (/invalid.*email|email.*invalid/i.test(m)) return 'כתובת אימייל לא תקינה';
-    if (/rate limit/i.test(m)) return 'יותר מדי ניסיונות — נסו שוב בעוד מספר דקות';
+    if (/expired|invalid.*(otp|token)|token.*(invalid|expired)/i.test(m)) return 'הקוד שגוי או שפג תוקפו — בקשו קוד חדש';
+    if (/phone.*(provider|disabled|not enabled)|unsupported phone|sms.*(provider|disabled)/i.test(m))
+        return 'שליחת SMS אינה מופעלת בשרת — יש להפעיל ספק SMS ב-Supabase (Authentication → Providers → Phone)';
+    if (/invalid.*phone|phone.*invalid/i.test(m)) return 'מספר הטלפון אינו תקין';
+    if (/rate limit|too many|security purposes/i.test(m)) return 'יותר מדי ניסיונות — נסו שוב בעוד מספר דקות';
     return m;
 }
 
@@ -49,10 +49,12 @@ async function supabaseStore() {
     if (probe.error) throw new Error('הטבלה ' + TABLE + ' אינה זמינה: ' + probe.error.message);
 
     let user = null;
-    const norm = u => u ? {
-        id: u.id, email: u.email,
-        name: (u.user_metadata && u.user_metadata.display_name) || (u.email || '').split('@')[0]
-    } : null;
+    const norm = u => {
+        if (!u) return null;
+        const md = u.user_metadata || {};
+        const name = md.display_name || [md.first_name, md.last_name].filter(Boolean).join(' ') || u.phone || 'משתמש';
+        return { id: u.id, phone: u.phone ? '+' + String(u.phone).replace(/^\+/, '') : '', first: md.first_name || '', last: md.last_name || '', name };
+    };
     const { data: { session } } = await sb.auth.getSession();
     user = norm(session && session.user);
 
@@ -93,20 +95,19 @@ async function supabaseStore() {
         getUser: () => user,
         onAuth: cb => authCbs.push(cb),
 
-        async signUp({ email, password, name }) {
-            const { data, error } = await sb.auth.signUp({
-                email, password,
-                options: { data: { display_name: name }, emailRedirectTo: location.origin + location.pathname }
+        async sendOtp({ phone, first, last }) {
+            const { error } = await sb.auth.signInWithOtp({
+                phone, options: { data: { first_name: first, last_name: last, display_name: first + ' ' + last } }
             });
             if (error) throw new Error(hebAuthError(error));
-            // Supabase מחזיר user ללא identities כשהאימייל כבר רשום
-            if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0)
-                throw new Error(hebAuthError({ message: 'already registered' }));
-            return { needsConfirm: !data.session };
+            return {};
         },
-        async signIn({ email, password }) {
-            const { error } = await sb.auth.signInWithPassword({ email, password });
+        async verifyOtp({ phone, code, first, last }) {
+            const { data, error } = await sb.auth.verifyOtp({ phone, token: code, type: 'sms' });
             if (error) throw new Error(hebAuthError(error));
+            // עדכון השם גם למשתמש קיים (metadata של הרשמה נשמר רק בפעם הראשונה)
+            const upd = await sb.auth.updateUser({ data: { first_name: first, last_name: last, display_name: first + ' ' + last } });
+            user = norm((upd.data && upd.data.user) || data.user);
         },
         async signOut() { await sb.auth.signOut(); },
 
@@ -184,14 +185,10 @@ function tx(db, store, mode, fn) {
     });
 }
 
-async function sha256(text) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 async function demoStore(reason) {
     const db = await idb();
-    const USERS = 'fc_demo_users', SESSION = 'fc_demo_session';
+    const USERS = 'fc_demo_phone_users', SESSION = 'fc_demo_phone_session';
+    let pendingOtp = null;
     const readUsers = () => { try { return JSON.parse(localStorage.getItem(USERS)) || {}; } catch (_) { return {}; } };
     let user = null;
     try { user = JSON.parse(localStorage.getItem(SESSION)); } catch (_) { }
@@ -243,21 +240,21 @@ async function demoStore(reason) {
         getUser: () => user,
         onAuth: cb => authCbs.push(cb),
 
-        async signUp({ email, password, name }) {
-            email = email.toLowerCase();
-            if (password.length < 6) throw new Error('הסיסמה קצרה מדי (לפחות 6 תווים)');
-            const users = readUsers();
-            if (users[email]) throw new Error('משתמש עם אימייל זה כבר רשום — התחבר/י');
-            users[email] = { id: crypto.randomUUID(), name, hash: await sha256(email + ':' + password) };
-            localStorage.setItem(USERS, JSON.stringify(users));
-            setUser({ id: users[email].id, email, name });
-            return { needsConfirm: false };
+        // מצב הדגמה: אין שליחת SMS אמיתית — הקוד מוצג על המסך
+        async sendOtp({ phone }) {
+            const code = String(Math.floor(100000 + Math.random() * 900000));
+            pendingOtp = { phone, code, exp: Date.now() + 5 * 60000 };
+            return { demoCode: code };
         },
-        async signIn({ email, password }) {
-            email = email.toLowerCase();
-            const u = readUsers()[email];
-            if (!u || u.hash !== await sha256(email + ':' + password)) throw new Error('אימייל או סיסמה שגויים');
-            setUser({ id: u.id, email, name: u.name });
+        async verifyOtp({ phone, code, first, last }) {
+            if (!pendingOtp || pendingOtp.phone !== phone || Date.now() > pendingOtp.exp || pendingOtp.code !== code)
+                throw new Error('הקוד שגוי או שפג תוקפו — בקשו קוד חדש');
+            pendingOtp = null;
+            const users = readUsers();
+            if (!users[phone]) users[phone] = { id: crypto.randomUUID() };
+            Object.assign(users[phone], { first, last });
+            localStorage.setItem(USERS, JSON.stringify(users));
+            setUser({ id: users[phone].id, phone, first, last, name: first + ' ' + last });
         },
         async signOut() { setUser(null); },
 

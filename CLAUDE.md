@@ -223,6 +223,18 @@ glassmorphism design from TSRS. Setup: run `field-collect/supabase/field_points.
 in the Supabase SQL editor; until then the app falls back to local demo mode (IndexedDB).
 See `field-collect/README.md`.
 
+### Session 8 — continued (field-collect)
+- Design: MAPI customer-portal "Luxury" language (navy/purple/champagne gold, Heebo, Material Symbols),
+  splash screen, floating glass header + dock, photo hero carousel. Tkuma logo slot: assets/tkuma-logo.png.
+- Layers (js/config.js LAYERS): OSM, MAPI orthophoto (interim Esri fallback), MAPI buildings (pending URL).
+- Sign-in: first name + last name + mobile, verified by SMS OTP (Supabase phone auth; demo mode shows code).
+- CSV export with one column per photo URL. Deployed at flood-risk-assesment-police.vercel.app/field-collect/.
+
+## ⚠️ Standing rule — QA at the end of every session
+At the end of EVERY session run a comprehensive functional QA pass before finishing:
+`field-collect/qa/qa.mjs` (Playwright, mobile + desktop) plus a manual screenshot review,
+and report pass/fail results to the user. Extend qa.mjs whenever a feature is added.
+
 ## Project Structure
 ```
 tsrs-app/

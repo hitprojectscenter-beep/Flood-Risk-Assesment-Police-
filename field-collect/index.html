@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap">
-    <link rel="stylesheet" href="css/style.css?v=20261023d">
+    <link rel="stylesheet" href="css/style.css?v=20261023e">
 </head>
 <body>
     <!-- ===== Splash ===== -->
@@ -99,35 +99,52 @@
         <div class="sheet-handle"></div>
         <button class="sheet-close" data-close aria-label="סגירה">✕</button>
         <div id="authLoggedOut">
+            <h2>הזדהות מזין</h2>
             <div id="authNote" class="note" hidden></div>
-            <div class="tabs">
-                <button class="tab active" data-tab="login">התחברות</button>
-                <button class="tab" data-tab="signup">הרשמה</button>
-            </div>
+            <div class="steps"><span id="stepDot1" class="on">1 · פרטים</span><i></i><span id="stepDot2">2 · קוד מהסמס</span></div>
+
+            <!-- שלב 1: שם, שם משפחה ונייד -->
             <form id="authForm" autocomplete="on" novalidate>
-                <label class="field signup-only" hidden>
-                    <span>שם מלא</span>
-                    <input id="authName" type="text" maxlength="80" autocomplete="name" placeholder="השם שיוצג כמזין הנתונים">
-                </label>
+                <div class="field-row">
+                    <label class="field">
+                        <span>שם פרטי <b class="req">*</b></span>
+                        <input id="authFirst" type="text" maxlength="40" autocomplete="given-name" required>
+                    </label>
+                    <label class="field">
+                        <span>שם משפחה <b class="req">*</b></span>
+                        <input id="authLast" type="text" maxlength="40" autocomplete="family-name" required>
+                    </label>
+                </div>
                 <label class="field">
-                    <span>אימייל</span>
-                    <input id="authEmail" type="email" inputmode="email" autocomplete="email" required placeholder="name@example.com" dir="ltr">
-                </label>
-                <label class="field">
-                    <span>סיסמה</span>
-                    <input id="authPass" type="password" minlength="6" autocomplete="current-password" required placeholder="לפחות 6 תווים" dir="ltr">
+                    <span>מספר טלפון נייד <b class="req">*</b></span>
+                    <input id="authPhone" type="tel" inputmode="tel" autocomplete="tel-national" required placeholder="050-1234567" dir="ltr" maxlength="20">
                 </label>
                 <div id="authMsg" class="msg" role="status"></div>
-                <button id="authSubmit" type="submit" class="btn btn-block">התחברות</button>
+                <button id="authSubmit" type="submit" class="btn btn-block"><span class="ms">sms</span> שליחת קוד אימות בסמס</button>
             </form>
-            <p class="hint">צפייה בנתונים פתוחה לכולם. הרשמה נדרשת רק כדי לדקור נקודות ולהזין נתונים.</p>
+
+            <!-- שלב 2: אימות הקוד -->
+            <form id="otpForm" novalidate hidden>
+                <p class="otp-sent">נשלח קוד בן 6 ספרות למספר <b id="otpPhone" dir="ltr"></b></p>
+                <label class="field">
+                    <span>קוד אימות</span>
+                    <input id="otpCode" class="otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="••••••" dir="ltr">
+                </label>
+                <div id="otpMsg" class="msg" role="status"></div>
+                <button id="otpSubmit" type="submit" class="btn btn-block"><span class="ms">verified_user</span> אימות וכניסה</button>
+                <div class="otp-links">
+                    <button type="button" id="otpResend" class="link-btn" disabled>שליחה חוזרת</button>
+                    <button type="button" id="otpBack" class="link-btn">שינוי מספר</button>
+                </div>
+            </form>
+            <p class="hint">צפייה בנתונים פתוחה לכולם. הזדהות נדרשת רק כדי לדקור נקודות ולהזין נתונים. מספר הנייד משמש לאימות בלבד ואינו מוצג לצופים.</p>
         </div>
         <div id="authLoggedIn" hidden>
             <div class="profile">
                 <div id="profAvatar" class="avatar"></div>
                 <div>
                     <div id="profName" class="prof-name"></div>
-                    <div id="profEmail" class="prof-email" dir="ltr"></div>
+                    <div id="profPhone" class="prof-email" dir="ltr"></div>
                 </div>
             </div>
             <div id="profStats" class="prof-stats"></div>
@@ -231,6 +248,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script type="module" src="js/app.js?v=20261023d"></script>
+    <script type="module" src="js/app.js?v=20261023e"></script>
 </body>
 </html>

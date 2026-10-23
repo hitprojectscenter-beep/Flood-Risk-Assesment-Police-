@@ -4,12 +4,12 @@
 **שם מיקום · שם המזין · הערות · מספר תמונות**.
 
 - **צפייה** בנקודות, בתמונות, ברשימה ובייצוא — פתוחה לכולם, **ללא הרשמה**.
-- **דקירה והזנה** — רק למשתמש **רשום ומחובר**. עריכה ומחיקה — רק למי שהזין את הנקודה.
+- **דקירה והזנה** — רק למזין **מזוהה**: שם פרטי, שם משפחה ומספר נייד, מאומת בקוד חד-פעמי שנשלח ב-SMS. עריכה ומחיקה — רק למי שהזין את הנקודה.
 
 ## המנועים שעליהם היישום בנוי
 | רכיב | מקור |
 |---|---|
-| הרשמה/התחברות (אימייל+סיסמה), מסד נתונים, אחסון תמונות, הרשאות RLS | **Supabase** — אותו מנוע ואותו פרויקט של יישום ניווט השטח (`field-nav-app`) |
+| הזדהות בנייד + קוד SMS (OTP), מסד נתונים, אחסון תמונות, הרשאות RLS | **Supabase** — אותו מנוע ואותו פרויקט של יישום ניווט השטח (`field-nav-app`) |
 | שכבות מפה: רחובות, שבילי ישראל (Israel Hiking Map), טופוגרפית, צילום אוויר, Hillshade | `field-nav-app` + TSRS |
 | Leaflet 1.9 | TSRS (flood-risk-assesment-police) |
 | שפת עיצוב Luxury (נייבי · סגול · זהב שמפניה), Heebo, Material Symbols | פורטל הלקוחות של המרכז למיפוי ישראל (`mapi-customer-portal-poc`) |
@@ -41,7 +41,9 @@
 ## הקמה (פעם אחת, ~2 דקות)
 1. Supabase Dashboard → **SQL Editor** → הדביקו את [`supabase/field_points.sql`](supabase/field_points.sql) → **Run**.
    הסקריפט יוצר את הטבלה `field_points`, מדיניות RLS, bucket תמונות ציבורי `field-photos` והפעלת realtime.
-2. (מומלץ) Authentication → URL Configuration → הוסיפו את כתובת האתר ל-**Redirect URLs** (לקישור אימות המייל).
+2. **הזדהות בסמס** — Authentication → Sign In / Providers → **Phone** → Enable, ובחירת ספק SMS
+   (Twilio / MessageBird / Vonage / Textlocal) עם פרטי החשבון שלו. ללא ספק SMS לא יישלחו קודים.
+   מומלץ: OTP expiry = 300 שניות, אורך קוד 6.
 3. אם רוצים פרויקט Supabase אחר — עדכנו את `js/config.js`.
 
 > כל עוד הטבלה לא נוצרה (או שאין חיבור לשרת), היישום עובר אוטומטית ל**מצב הדגמה**:
@@ -69,4 +71,10 @@ field-collect/
 │   └── app.js            # מפה, דקירה, טופס, צפייה, רשימה, ייצוא
 ├── supabase/field_points.sql
 ├── manifest.json · sw.js · icon.svg · vercel.json
+```
+
+## בדיקות QA
+```bash
+cd field-collect && python -m http.server 5090 &
+node qa/qa.mjs            # כ-60 בדיקות פונקציונליות במצב הדגמה (מובייל + דסקטופ)
 ```
