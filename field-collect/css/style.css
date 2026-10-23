@@ -307,6 +307,14 @@ body.placing .fab-main .fab-label::after { content: ' (ביטול)'; font-weight
     body.sheet-open .fab-main, body.sheet-open .map-fabs { opacity: 1; pointer-events: auto; }
     .form-actions { bottom: -18px; }
 }
+@media (max-width: 420px) {
+    #csvBtn { padding: 0 9px; font-size: 13px; }
+    .brand-sub { display: none; }
+    .brand-icon { width: 30px; height: 30px; }
+    .hbtn { padding: 0 9px; }
+    #userBtn { max-width: 34vw; }
+    .mode-banner .muted { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
 @media (max-width: 380px) {
     .brand-sub { display: none; }
     .brand h1 { font-size: 15px; }

@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
-    <link rel="stylesheet" href="css/style.css?v=20261023">
+    <link rel="stylesheet" href="css/style.css?v=20261023b">
 </head>
 <body>
     <!-- ===== Header ===== -->
@@ -28,6 +28,7 @@
             </div>
         </div>
         <div class="header-actions">
+            <button id="csvBtn" class="hbtn" title="הורדת כל הנתונים כקובץ CSV" aria-label="הורדת CSV">⬇ CSV</button>
             <button id="listBtn" class="hbtn" title="רשימת נקודות" aria-label="רשימת נקודות">
                 ☰ <span id="pointCount" class="badge">0</span>
             </button>
@@ -169,7 +170,7 @@
         <ul id="pointList" class="point-list"></ul>
         <div class="list-export">
             <button id="exportGeojson" class="btn btn-sm btn-ghost">⬇ GeoJSON</button>
-            <button id="exportCsv" class="btn btn-sm btn-ghost">⬇ CSV</button>
+            <button id="exportCsv" class="btn btn-sm">⬇ הורדת CSV (כולל קישורי תמונות)</button>
         </div>
     </section>
 
@@ -195,6 +196,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script type="module" src="js/app.js?v=20261023"></script>
+    <script type="module" src="js/app.js?v=20261023b"></script>
 </body>
 </html>

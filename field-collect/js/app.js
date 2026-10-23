@@ -652,13 +652,30 @@ $('exportGeojson').addEventListener('click', () => {
     };
     download(`field-points-${stamp()}.geojson`, JSON.stringify(fc, null, 2), 'application/geo+json');
 });
-$('exportCsv').addEventListener('click', () => {
+function exportCsv() {
+    const list = filteredPoints();
+    if (!list.length) return toast('אין נקודות לייצוא', 'err');
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const rows = [['id', 'location_name', 'reporter_name', 'notes', 'lat', 'lng', 'accuracy_m', 'created_at', 'photos']]
-        .concat(filteredPoints().map(p => [p.id, p.location_name, p.reporter_name, p.notes, p.lat, p.lng, p.accuracy_m, p.created_at, publicPhotos(p).join(' ')]));
+    const maxPh = Math.max(0, ...list.map(p => publicPhotos(p).length));
+    const appLink = id => location.origin + location.pathname + '?p=' + id;
+    const head = ['מזהה', 'שם המיקום', 'שם המזין', 'הערות', 'קו רוחב (lat)', 'קו אורך (lng)', 'דיוק GPS (מ\')',
+        'תאריך הזנה', 'תאריך עדכון', 'מספר תמונות', 'קישור למפה', 'קישור ביישום']
+        .concat(Array.from({ length: maxPh }, (_, i) => 'תמונה ' + (i + 1)));
+    const rows = list.map(p => {
+        const ph = publicPhotos(p);
+        return [p.id, p.location_name, p.reporter_name, p.notes, p.lat.toFixed(6), p.lng.toFixed(6), p.accuracy_m,
+            fmtDate(p.created_at), p.updated_at ? fmtDate(p.updated_at) : '', p.photo_paths.length,
+            `https://www.google.com/maps?q=${p.lat},${p.lng}`, appLink(p.id)]
+            .concat(Array.from({ length: maxPh }, (_, i) => ph[i] || ''));
+    });
     // BOM — כדי שאקסל יציג עברית כראוי
-    download(`field-points-${stamp()}.csv`, '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
-});
+    download(`field-points-${stamp()}.csv`, '﻿' + [head].concat(rows).map(r => r.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+    if (store.mode === 'demo' && list.some(p => p.photo_paths.length))
+        toast('במצב הדגמה התמונות שמורות במכשיר בלבד — אין להן קישור', 'err');
+    else toast(`יוצאו ${list.length} נקודות ✓`, 'ok');
+}
+$('exportCsv').addEventListener('click', exportCsv);
+$('csvBtn').addEventListener('click', () => { $('listSearch').value = ''; $('listMine').checked = false; exportCsv(); });
 
 // ============================================================================
 // Init
