@@ -1,8 +1,23 @@
 {
   "version": 2,
-  "buildCommand": null,
+  "buildCommand": "rm -rf frontend/field-collect && cp -r field-collect frontend/field-collect",
   "outputDirectory": "frontend",
   "routes": [
+    {
+      "src": "/field-collect",
+      "status": 308,
+      "headers": {
+        "Location": "/field-collect/"
+      }
+    },
+    {
+      "src": "/field-collect/sw.js",
+      "headers": {
+        "Cache-Control": "no-cache",
+        "Service-Worker-Allowed": "/field-collect/"
+      },
+      "continue": true
+    },
     {
       "src": "/data/(.*)",
       "headers": {

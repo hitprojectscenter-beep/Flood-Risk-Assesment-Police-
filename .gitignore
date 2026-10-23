@@ -11,3 +11,4 @@ build/
 serviceAccountKey.json
 firebase-debug.log
 .firebase/
+frontend/field-collect/
