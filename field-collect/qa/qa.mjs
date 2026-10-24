@@ -87,6 +87,9 @@ await page.click('#splashGo'); await wait(900);
 check('מסך הפתיחה נסגר', await page.evaluate(() => document.getElementById('splash').classList.contains('gone')));
 check('המפה נטענה (Leaflet)', await page.evaluate(() => !!document.querySelector('.leaflet-container')));
 check('כפתורי הסרגל התחתון קיימים', (await page.locator('.dock .dock-btn').count()) === 4 && await page.isVisible('#addBtn'));
+check('כפתור "יצירת קשר" מחייג ל-050-5714100', (await page.getAttribute('#contactBtn', 'href')) === 'tel:+972505714100' && await page.isVisible('#contactBtn'));
+check('הלוגו של מנהלת תקומה מוצג בכותרת', await page.isVisible('#brandLogo') && await page.evaluate(() => document.getElementById('brandLogo').naturalWidth > 0));
+check('אין כפתור הורדה בסרגל לצופה', (await page.locator('.dock #csvBtn').count()) === 0);
 await page.click('#modeBanner');
 
 // ---------------------------------------------------------------------------
@@ -241,6 +244,24 @@ await page.fill('#listSearch', '');
 await page.check('#listMine'); await wait(200);
 check('סינון "שלי בלבד"', (await page.locator('#pointList li[data-id]').count()) === 2);
 await page.uncheck('#listMine');
+group('הורדת נתונים — למנהל בלבד');
+check('משתמש רגיל: כפתורי ההורדה ברשימה מוסתרים', await page.isHidden('#exportCsv') && await page.isHidden('#exportGeojson'));
+await page.click('#listSheet .sheet-close'); await wait(300);
+await page.click('#userBtn'); await wait(400);
+check('משתמש רגיל: אין כלי מנהל בפרופיל', await page.isHidden('#csvBtn'));
+const blocked = await page.evaluate(() => { document.getElementById('exportCsv').click(); return document.getElementById('toast').textContent; });
+check('משתמש רגיל: ניסיון הורדה עוקף-ממשק נחסם', blocked.includes('למנהל'));
+await page.click('#logoutBtn'); await wait(400);
+await page.click('#userBtn'); await wait(300);
+await login(page, 'מנהל', 'המערכת', '050-5714100');
+check('מנהל (050-5714100): מזוהה כמנהל', await page.evaluate(() => document.body.classList.contains('is-admin')));
+await page.click('#userBtn'); await wait(400);
+check('מנהל: כלי מנהל מוצגים בפרופיל', await page.isVisible('#csvBtn') && await page.isVisible('#geojsonAllBtn'));
+const [dlA] = await Promise.all([page.waitForEvent('download'), page.click('#csvBtn')]);
+check('מנהל: הורדת CSV מהפרופיל', (fs.readFileSync(await dlA.path(), 'utf8').trim().split(/\r\n(?=")/).length) === 3);
+await page.click('#authSheet .sheet-close'); await wait(300);
+await page.click('#listBtn'); await wait(400);
+check('מנהל: כפתורי ההורדה ברשימה מוצגים', await page.isVisible('#exportCsv'));
 const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#exportCsv')]);
 const csv = fs.readFileSync(await dl.path(), 'utf8');
 check('CSV: שם קובץ', /^field-points-\d{4}-\d{2}-\d{2}\.csv$/.test(dl.suggestedFilename()));
@@ -255,6 +276,12 @@ const gj = JSON.parse(fs.readFileSync(await dl2.path(), 'utf8'));
 check('GeoJSON תקין עם 2 נקודות', gj.type === 'FeatureCollection' && gj.features.length === 2 && gj.features[0].geometry.type === 'Point');
 check('GeoJSON: השדות הנוספים', gj.features.every(f => 'site_type' in f.properties && 'tkuma_contact' in f.properties));
 await shot(page, 'qa-06-list');
+// חזרה למזינה המקורית להמשך הבדיקות
+await page.click('#listSheet .sheet-close'); await wait(300);
+await page.click('#userBtn'); await wait(300); await page.click('#logoutBtn'); await wait(400);
+await page.click('#userBtn'); await wait(300);
+await login(page);
+await page.click('#listBtn'); await wait(400);
 
 // ---------------------------------------------------------------------------
 group('מחיקה');

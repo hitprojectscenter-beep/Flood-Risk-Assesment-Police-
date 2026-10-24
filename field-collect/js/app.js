@@ -1,7 +1,7 @@
 // יומן שטח — בקר ראשי: מפה, דקירת נקודה, טופס הזנה, צפייה, רשימה, ייצוא.
 import { createStore } from './store.js';
 import { resizeImage } from './photos.js';
-import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS, EXTRA_FIELDS } from './config.js';
+import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS, EXTRA_FIELDS, ADMIN_PHONES, CONTACT_PHONE } from './config.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -376,8 +376,12 @@ $('logoutBtn').addEventListener('click', async () => {
 });
 $('myPointsBtn').addEventListener('click', () => { $('listMine').checked = true; openList(); });
 
+// מנהל = משתמש מאומת (SMS) שמספרו ב-ADMIN_PHONES
+const isAdmin = () => { const u = store && store.getUser(); return !!(u && ADMIN_PHONES.includes(u.phone)); };
+
 function onAuthChanged() {
     const u = store.getUser();
+    document.body.classList.toggle('is-admin', isAdmin());
     $('userBtnLabel').textContent = u ? u.name : 'כניסה / הרשמה';
     $('userBtn').classList.toggle('logged', !!u);
     renderMarkers();
@@ -809,7 +813,8 @@ function download(name, text, type) {
 }
 const stamp = () => new Date().toISOString().slice(0, 10);
 const publicPhotos = p => p.photos.filter(u => /^https?:/.test(u));
-$('exportGeojson').addEventListener('click', () => {
+function exportGeojson() {
+    if (!isAdmin()) return toast('הורדת נתונים זמינה למנהל המערכת בלבד', 'err');
     const fc = {
         type: 'FeatureCollection',
         features: filteredPoints().map(p => ({
@@ -823,8 +828,10 @@ $('exportGeojson').addEventListener('click', () => {
         }))
     };
     download(`field-points-${stamp()}.geojson`, JSON.stringify(fc, null, 2), 'application/geo+json');
-});
+}
+$('exportGeojson').addEventListener('click', exportGeojson);
 function exportCsv() {
+    if (!isAdmin()) return toast('הורדת נתונים זמינה למנהל המערכת בלבד', 'err');
     const list = filteredPoints();
     if (!list.length) return toast('אין נקודות לייצוא', 'err');
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
@@ -847,7 +854,11 @@ function exportCsv() {
     else toast(`יוצאו ${list.length} נקודות ✓`, 'ok');
 }
 $('exportCsv').addEventListener('click', exportCsv);
-$('csvBtn').addEventListener('click', () => { $('listSearch').value = ''; $('listMine').checked = false; exportCsv(); });
+// כפתורי מנהל בפרופיל — מורידים את כל הנקודות (ללא סינון הרשימה)
+const allPoints = fn => () => { $('listSearch').value = ''; $('listMine').checked = false; fn(); };
+$('csvBtn').addEventListener('click', allPoints(exportCsv));
+$('geojsonAllBtn').addEventListener('click', allPoints(exportGeojson));
+$('contactBtn').href = 'tel:' + CONTACT_PHONE;
 
 // ============================================================================
 // Init

@@ -626,3 +626,13 @@ body.sheet-open .toast { bottom: auto; top: calc(80px + var(--safe-t)); }
 .info-cell b { display: block; font-size: 14px; overflow-wrap: anywhere; }
 .li-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .li-tags span { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--gold-tint); border: 1px solid rgba(180, 146, 78, .35); color: var(--navy-2); }
+
+/* ===== Admin-only + contact ===== */
+.admin-only { display: none !important; }
+body.is-admin .list-export.admin-only { display: flex !important; }
+body.is-admin .admin-box.admin-only { display: block !important; }
+.admin-box { margin-top: 14px; padding: 12px; border-radius: 16px; background: var(--gold-tint); border: 1px solid rgba(180, 146, 78, .45); }
+.admin-box .sec-label { margin: 0 0 4px; }
+.admin-box .btn { font-size: 14px; }
+a.dock-btn { text-decoration: none; }
+#contactBtn .ms { color: var(--ok); font-variation-settings: 'FILL' 1; }
