@@ -36,6 +36,9 @@ function loadScript(src, globalName) {
     });
 }
 
+export const loadProj4 = () => loadScript(PROJ4_SRC, 'proj4');
+export const loadGovmapLib = async () => { await loadProj4(); return (gm = gm || await loadScript(GOVMAP.script, 'govmap')); };
+
 export const toITM = (lat, lng) => { const [x, y] = window.proj4('WGS84', ITM, [lng, lat]); return { x, y }; };
 export const fromITM = (x, y) => { const [lng, lat] = window.proj4(ITM, 'WGS84', [x, y]); return { lat, lng }; };
 
@@ -45,8 +48,7 @@ const abs = rel => new URL(rel, location.href).href;
 // מציג את GovMap במקום Leaflet, ממורכז לפי center/zoom של Leaflet
 export async function showGovmap({ background, center, zoom }, h) {
     handlers = h || handlers;
-    await loadScript(PROJ4_SRC, 'proj4');
-    gm = await loadScript(GOVMAP.script, 'govmap');
+    await loadGovmapLib();
     document.body.classList.add('gm-on');
     $box().hidden = false;
     const c = toITM(center.lat, center.lng);
@@ -91,6 +93,14 @@ export function moveTo(center, zoom) {
     const c = toITM(center.lat, center.lng);
     suppressUntil = Date.now() + 900;
     gm.zoomToXY({ x: c.x, y: c.y, level: toLevel(zoom), marker: false });
+}
+
+// סמן תוצאת חיפוש במפת GovMap (הסמן המובנה של zoomToXY)
+export function markLocation(ll, zoom) {
+    if (!active) return;
+    const c = toITM(ll.lat, ll.lng);
+    suppressUntil = Date.now() + 900;
+    gm.zoomToXY({ x: c.x, y: c.y, level: toLevel(zoom), marker: true });
 }
 
 // ציור הנקודות (ונקודת טיוטה) על מפת GovMap

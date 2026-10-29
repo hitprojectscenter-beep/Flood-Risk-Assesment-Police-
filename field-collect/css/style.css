@@ -642,3 +642,29 @@ a.dock-btn { text-decoration: none; }
 #govmapCanvas { width: 100%; height: 100%; }
 body.gm-on .leaflet-control-container { display: none; }
 body.gm-on .map-vignette { display: none; }
+
+/* ===== Search ===== */
+.top-actions { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.icon-chip { width: 42px; height: 42px; border-radius: 14px; flex-shrink: 0; display: grid; place-items: center;
+    background: #fff; border: 1px solid var(--stroke); color: var(--navy-2); }
+.icon-chip .ms { font-size: 24px; }
+.search-box { display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 16px; background: #fff;
+    border: 1px solid rgba(180, 146, 78, .5); box-shadow: 0 6px 18px -10px rgba(0, 29, 53, .3); }
+.search-box .ms { color: var(--gold-dark); font-size: 24px; }
+.search-box input { flex: 1; border: none; outline: none; background: none; padding: 14px 0; font-size: 16px; min-width: 0; }
+.search-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px; }
+.search-chips > span { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--gold-tint); border: 1px solid rgba(180, 146, 78, .35); color: var(--navy-2); }
+.search-chips .ms { font-size: 14px; color: var(--gold-dark); }
+.search-results { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.search-results li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; cursor: pointer;
+    background: #fff; border: 1px solid var(--stroke); animation: rise .3s var(--ease) both; }
+.search-results li:hover { border-color: rgba(180, 146, 78, .6); }
+.sr-ic { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--grad-soft); flex-shrink: 0; }
+.sr-ic .ms { color: var(--purple); font-size: 22px; }
+.sr-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sr-body b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-body small { font-size: 12px; color: var(--muted); }
+.sr-drop { flex-shrink: 0; }
+.search-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--gold); border: 3px solid #fff;
+    box-shadow: 0 0 0 0 rgba(180, 146, 78, .7); animation: me 1.8s infinite; }
+@media (max-width: 380px) { .icon-chip { width: 38px; height: 38px; } }

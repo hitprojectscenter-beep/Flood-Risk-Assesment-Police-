@@ -1,8 +1,9 @@
 // יומן שטח — בקר ראשי: מפה, דקירת נקודה, טופס הזנה, צפייה, רשימה, ייצוא.
 import { createStore } from './store.js';
 import { resizeImage } from './photos.js';
-import { govmapAllowed, isGovmapActive, showGovmap, hideGovmap, moveTo as gmMoveTo, drawPoints as gmDrawPoints } from './govmap.js';
-import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS, EXTRA_FIELDS, ADMIN_PHONES, CONTACT_PHONE } from './config.js';
+import { govmapAllowed, isGovmapActive, showGovmap, hideGovmap, moveTo as gmMoveTo, drawPoints as gmDrawPoints, markLocation as gmMark } from './govmap.js';
+import { searchPlaces } from './search.js';
+import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS, EXTRA_FIELDS, ADMIN_PHONES, CONTACT_PHONE, SEARCH_TYPES } from './config.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -30,7 +31,7 @@ function toast(text, kind = '') {
 // ============================================================================
 // Sheets
 // ============================================================================
-const SHEETS = ['authSheet', 'formSheet', 'detailSheet', 'listSheet', 'layersSheet'];
+const SHEETS = ['authSheet', 'formSheet', 'detailSheet', 'listSheet', 'layersSheet', 'searchSheet'];
 function openSheet(id) {
     SHEETS.forEach(s => { if (s !== id) $(s).classList.remove('open'); });
     $(id).classList.add('open');
@@ -898,6 +899,58 @@ const allPoints = fn => () => { $('listSearch').value = ''; $('listMine').checke
 $('csvBtn').addEventListener('click', allPoints(exportCsv));
 $('geojsonAllBtn').addEventListener('click', allPoints(exportGeojson));
 $('contactBtn').href = 'tel:' + CONTACT_PHONE;
+
+// ============================================================================
+// Search (GovMap: יישוב · שכונה · רחוב · כתובת · נקודת עניין · צומת)
+// ============================================================================
+const TYPE = Object.fromEntries(SEARCH_TYPES.map(t => [t.key, t]));
+let searchTimer = null, searchSeq = 0, searchResults = [], searchMarker = null;
+$('searchChips').innerHTML = SEARCH_TYPES.map(t => `<span>${ms(t.icon)} ${esc(t.label)}</span>`).join('');
+$('searchBtn').addEventListener('click', () => {
+    openSheet('searchSheet');
+    setTimeout(() => $('searchInput').focus(), 350);
+});
+async function runSearch() {
+    const q = $('searchInput').value.trim();
+    const seq = ++searchSeq;
+    if (q.length < 2) { $('searchResults').innerHTML = ''; $('searchMsg').textContent = ''; return; }
+    $('searchMsg').textContent = 'מחפש…';
+    const res = await searchPlaces(q);
+    if (seq !== searchSeq) return;                       // תוצאה ישנה — התעלם
+    searchResults = res;
+    $('searchMsg').textContent = res.length ? `מקור: ${res[0].source}` : 'לא נמצאו תוצאות';
+    $('searchResults').innerHTML = res.map((r, i) => {
+        const t = TYPE[r.type] || TYPE.poi;
+        return `<li data-i="${i}" role="option">
+            <span class="sr-ic">${ms(t.icon)}</span>
+            <span class="sr-body"><b>${esc(r.label)}</b><small>${esc(t.label)}</small></span>
+            <button class="btn btn-xs btn-ghost sr-drop" data-drop="${i}" title="דקירת נקודה כאן">${ms('add_location_alt')}</button>
+        </li>`;
+    }).join('');
+}
+$('searchInput').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(runSearch, 350); });
+$('searchInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(searchTimer); runSearch().then(() => { if (searchResults[0]) goToResult(searchResults[0]); }); }
+});
+function goToResult(r, drop) {
+    closeSheet('searchSheet');
+    const z = r.type === 'settlement' ? 14 : r.type === 'neighborhood' || r.type === 'street' ? 16 : 17;
+    const ll = L.latLng(r.lat, r.lng);
+    if (searchMarker) map.removeLayer(searchMarker);
+    searchMarker = L.marker(ll, { interactive: false, zIndexOffset: 900, icon: L.divIcon({ className: 'pin-wrap', html: '<div class="search-dot"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }) }).addTo(map);
+    map.setView(ll, z, { animate: false });
+    if (isGovmapActive()) gmMark(ll, z);
+    if (drop) {
+        const go = () => { clearDraft(); setDraft(ll, null); };
+        if (requireLogin(go)) go();
+    } else toast(r.label, 'ok');
+}
+$('searchResults').addEventListener('click', e => {
+    const d = e.target.closest('[data-drop]');
+    if (d) return goToResult(searchResults[+d.dataset.drop], true);
+    const li = e.target.closest('li[data-i]');
+    if (li) goToResult(searchResults[+li.dataset.i]);
+});
 
 // ============================================================================
 // Init

@@ -60,7 +60,10 @@ const GOVMAP_MOCK = `(function(){
     onEvent: function(ev){ return deferred(cbs[ev]); },
     setBackground: function(b){ window.__gm.bg = b; },
     zoomToXY: function(p){ window.__gm.zooms.push(p); },
-    displayGeometries: function(d){ window.__gm.draws.push(d); geomCbs = []; return deferred(geomCbs); }
+    displayGeometries: function(d){ window.__gm.draws.push(d); geomCbs = []; return deferred(geomCbs); },
+    geocodeType: { FullResult: 1 },
+    geocode: function(p){ window.__gm.geocodes = (window.__gm.geocodes || []).concat([p.keyword]);
+      return Promise.resolve({ status: 0, data: [{ X: 179557.04, Y: 665854.83, ResultLable: 'תל אביב - יפו', ResultType: 'SETTLEMENT' }] }); }
   };
   window.__gmClick = function(x, y){ cbs.click.forEach(function(cb){ cb({ mapPoint: { x: x, y: y } }); }); };
   window.__gmPoint = function(name){ geomCbs.forEach(function(cb){ cb({ data: { name: name } }); }); };
@@ -74,6 +77,8 @@ async function newPage(b, device, extra = {}) {
         acceptDownloads: true, ...extra
     });
     await routeOffline(ctx);
+    // GovMap האמיתי פועל רק בדומיין המורשה — בבדיקות הוא חסום, או מוחלף במימוש מדומה (בקבוצת GovMap)
+    await ctx.route(/www\.govmap\.gov\.il\/govmap\/api/, r => r.abort());
     const page = await ctx.newPage();
     page.errors = [];
     page.on('pageerror', e => page.errors.push(e.message));
@@ -343,6 +348,56 @@ check('אין שגיאות JavaScript (מובייל)', page.errors.length === 0,
 await ctx.close();
 
 // ---------------------------------------------------------------------------
+group('חיפוש במפה (יישוב · שכונה · רחוב · כתובת · נקודת עניין · צומת)');
+{
+    const { ctx: sctx, page: sp } = await newPage(b, devices['Pixel 7']);
+    let tldMode = 'ok', nomHit = false;
+    await sctx.route(/es\.govmap\.gov\.il\/TldSearch/, r => tldMode === 'ok'
+        ? r.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: {
+            STREET: [{ X: 179557.04, Y: 665854.83, ResultLable: 'הרצל, תל אביב - יפו' }],
+            JUNCTION: [{ X: 3874864, Y: 3782570, ResultLable: 'צומת גלילות' }],
+            GOVMAP_PARCEL_ALL: [{ X: 180000, Y: 666000, ResultLable: 'גוש 6111 חלקה 1' }] } }) })
+        : r.fulfill({ status: 500, body: '' }));
+    await sctx.route(/nominatim\.openstreetmap\.org/, r => { nomHit = true; r.fulfill({ contentType: 'application/json', body: JSON.stringify([
+        { display_name: 'שדרות, מחוז הדרום, ישראל', lat: '31.5245', lon: '34.5953', addresstype: 'town', type: 'administrative', category: 'boundary' }]) }); });
+    await sp.goto(BASE + '?demo', { waitUntil: 'domcontentloaded' }); await wait(1200);
+    await sp.click('#splashGo'); await wait(600); await sp.click('#modeBanner');
+    check('כפתור חיפוש בכותרת', await sp.isVisible('#searchBtn'));
+    await sp.click('#searchBtn'); await wait(500);
+    check('גיליון החיפוש נפתח', await isOpen(sp, 'searchSheet'));
+    const chips = await txt(sp, '#searchChips');
+    check('6 סוגי הישויות מוצגים', ['יישוב', 'שכונה', 'רחוב', 'כתובת', 'נקודת עניין', 'צומת'].every(t => chips.includes(t)));
+    await sp.fill('#searchInput', 'הרצל'); await wait(1600);
+    const items = await sp.locator('#searchResults li').allTextContents();
+    check('תוצאות GovMap: רחוב + צומת (ללא חלקות)', items.length === 2 && items.some(t => t.includes('הרצל') && t.includes('רחוב')) && items.some(t => t.includes('צומת גלילות')), items.join(' | '));
+    check('סדר תוצאות לפי סוג (רחוב לפני צומת)', items[0].includes('הרצל'));
+    check('מקור התוצאות מוצג', (await txt(sp, '#searchMsg')).includes('GovMap'));
+    await sp.locator('#searchResults li').first().click(); await wait(500);
+    const c = await sp.evaluate(() => { const m = window.__fieldCollect.map, ll = m.getCenter(); return { lat: ll.lat, lng: ll.lng, z: m.getZoom() }; });
+    check('בחירת תוצאה (ITM) ממקמת את המפה במדויק', Math.abs(c.lat - 32.0853) < 0.001 && Math.abs(c.lng - 34.7818) < 0.001 && c.z === 16, JSON.stringify(c));
+    check('הגיליון נסגר וסמן החיפוש מוצג', !(await isOpen(sp, 'searchSheet')) && (await sp.locator('.search-dot').count()) === 1);
+    await sp.click('#searchBtn'); await wait(400);
+    await sp.fill('#searchInput', 'גלילות'); await wait(1600);
+    await sp.locator('#searchResults li', { hasText: 'צומת גלילות' }).click(); await wait(500);
+    const c2 = await sp.evaluate(() => { const ll = window.__fieldCollect.map.getCenter(); return { lat: ll.lat, lng: ll.lng }; });
+    check('קואורדינטות Web Mercator מומרות נכון (צומת גלילות 32.1466, 34.8085)', Math.abs(c2.lat - 32.1466) < 0.0005 && Math.abs(c2.lng - 34.8085) < 0.0005, JSON.stringify(c2));
+    // גיבוי: GovMap לא זמין → OpenStreetMap
+    tldMode = 'fail';
+    await sp.click('#searchBtn'); await wait(400);
+    await sp.fill('#searchInput', 'שדרות'); await wait(1800);
+    check('גיבוי OpenStreetMap כש-GovMap לא זמין', nomHit && (await txt(sp, '#searchResults')).includes('שדרות') && (await txt(sp, '#searchMsg')).includes('OpenStreetMap'));
+    check('סיווג יישוב מ-OSM', (await txt(sp, '#searchResults li')).includes('יישוב'));
+    // דקירה מתוך תוצאת חיפוש (דורשת הזדהות)
+    await sp.locator('#searchResults [data-drop]').first().click(); await wait(500);
+    check('"דקירה כאן" ללא הזדהות פותחת הזדהות', await isOpen(sp, 'authSheet'));
+    await login(sp, 'דנה', 'כהן', '050-1234567'); await wait(500);
+    check('אחרי הזדהות נפתח טופס בנקודת התוצאה', await isOpen(sp, 'formSheet') && (await txt(sp, '#formCoords')).includes('31.524500'));
+    await sp.fill('#searchInput', '<img src=x onerror=alert(1)>').catch(() => { });
+    check('אין שגיאות JavaScript (חיפוש)', sp.errors.length === 0, sp.errors.join(' | '));
+    await sctx.close();
+}
+
+// ---------------------------------------------------------------------------
 group('GovMap — אורתופוטו ורחובות ומבנים (מימוש מדומה)');
 {
     const { ctx: gctx, page: g } = await newPage(b, devices['Pixel 7']);
@@ -388,6 +443,13 @@ group('GovMap — אורתופוטו ורחובות ומבנים (מימוש מ�
     const lc = await g.evaluate(() => { const m = window.__fieldCollect.map; const c = m.getCenter(); return { lat: c.lat, lng: c.lng, z: m.getZoom() }; });
     check('גרירה ב-GovMap מסנכרנת את מיקום המפה (Leaflet)', Math.abs(lc.lat - 32.0853) < 0.001 && Math.abs(lc.lng - 34.7818) < 0.001 && lc.z === 14, JSON.stringify(lc));
     await g.click('#detailSheet .sheet-close').catch(() => { }); await wait(300);
+    // חיפוש דרך GovMap API (geocode עם המפתח)
+    await g.click('#layersSheet .sheet-close').catch(() => { }); await wait(200);
+    await g.click('#searchBtn'); await wait(400);
+    await g.fill('#searchInput', 'תל אביב'); await wait(1500);
+    check('חיפוש דרך GovMap API (geocode)', (await g.evaluate(() => (window.__gm.geocodes || []).includes('תל אביב'))) && (await txt(g, '#searchResults')).includes('תל אביב - יפו'));
+    await g.locator('#searchResults li').first().click(); await wait(500);
+    check('תוצאת חיפוש מסומנת במפת GovMap', await g.evaluate(() => { const z = window.__gm.zooms; return z.length && z[z.length - 1].marker === true; }));
     await g.click('#layersBtn'); await wait(300);
     await g.click('#baseLayers .layer-card[data-key=osm]'); await wait(500);
     check('חזרה ל-OSM מסתירה את GovMap', await g.isHidden('#govmapBox') && !(await g.evaluate(() => document.body.classList.contains('gm-on'))));

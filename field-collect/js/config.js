@@ -95,3 +95,15 @@ export const GOVMAP = {
     domains: ['flood-risk-assesment-police.vercel.app', 'localhost'],   // localhost — לבדיקות בלבד
     script: 'https://www.govmap.gov.il/govmap/api/govmap.api.js'
 };
+
+// ---------------------------------------------------------------------------
+// חיפוש במפה — סוגי הישויות (כפי שהוגדרו לשכבות החיפוש של המפתח בפורטל GovMap)
+// ---------------------------------------------------------------------------
+export const SEARCH_TYPES = [
+    { key: 'settlement', label: 'יישוב', icon: 'location_city' },
+    { key: 'neighborhood', label: 'שכונה', icon: 'holiday_village' },
+    { key: 'street', label: 'רחוב', icon: 'signpost' },
+    { key: 'address', label: 'כתובת', icon: 'home_pin' },
+    { key: 'poi', label: 'נקודת עניין', icon: 'location_on' },
+    { key: 'junction', label: 'צומת', icon: 'fork_right' }
+];
