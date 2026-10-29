@@ -2,11 +2,11 @@
 // קבצי היישום: network-first עם נפילה למטמון (טעינה גם בקליטה חלשה).
 // אריחי מפה: cache-first (אזורים שנצפו זמינים גם ללא קליטה).
 // בקשות ל-Supabase (נתונים/הרשמה/העלאות) לעולם אינן נשמרות במטמון.
-const SHELL = 'fcollect-shell-v6';
+const SHELL = 'fcollect-shell-v7';
 const TILES = 'fcollect-tiles-v1';
 const SHELL_FILES = [
-  './', './index.html', './css/style.css?v=20261024a', './js/app.js?v=20261024a', './assets/tkuma-logo.png',
-  './js/store.js', './js/photos.js', './js/config.js', './manifest.json', './icon.svg',
+  './', './index.html', './css/style.css?v=20261029a', './js/app.js?v=20261029a', './assets/tkuma-logo.png',
+  './js/store.js', './js/photos.js', './js/govmap.js', './assets/pin.png', './assets/pin-mine.png', './assets/pin-draft.png', './js/config.js', './manifest.json', './icon.svg',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css',
@@ -29,7 +29,7 @@ const isShell = url => url.startsWith(self.location.origin) || /unpkg\.com|esm\.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = e.request.url;
-  if (/supabase\.co/.test(url)) return;
+  if (/supabase\.co|govmap\.gov\.il/.test(url)) return;
 
   if (isTile(url)) {
     e.respondWith(caches.open(TILES).then(async c => {

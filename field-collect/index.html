@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap">
-    <link rel="stylesheet" href="css/style.css?v=20261024a">
+    <link rel="stylesheet" href="css/style.css?v=20261029a">
 </head>
 <body>
     <!-- ===== Splash ===== -->
@@ -46,6 +46,7 @@
     </div>
 
     <main id="map" aria-label="מפה"></main>
+    <div id="govmapBox" class="govmap-box" hidden><div id="govmapCanvas"></div></div>
     <div class="map-vignette"></div>
 
     <!-- ===== Floating header ===== -->
@@ -236,9 +237,9 @@
         <h2>שכבות מפה</h2>
         <div class="sec-label">רקע</div>
         <div id="baseLayers" class="layer-grid"></div>
-        <div class="sec-label">שכבות-על</div>
+        <div class="sec-label" id="overlaySec">שכבות-על</div>
         <div id="overlayLayers" class="overlay-list"></div>
-        <p class="hint small">שכבות המרכז למיפוי ישראל מסומנות במפ"י. שכבה "ממתינה לחיבור" תופעל עם קבלת כתובת השירות.</p>
+        <p class="hint small">שכבות GovMap של המרכז למיפוי ישראל (צילום אוויר · רחובות ומבנים) מוצגות במפה הרשמית של GovMap. במצב זה גוררים ומגדילים את מפת GovMap, ודקירה מתבצעת בהקשה עליה.</p>
     </section>
 
     <!-- ===== Lightbox ===== -->
@@ -254,6 +255,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script type="module" src="js/app.js?v=20261024a"></script>
+    <script type="module" src="js/app.js?v=20261029a"></script>
 </body>
 </html>

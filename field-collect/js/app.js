@@ -1,6 +1,7 @@
 // יומן שטח — בקר ראשי: מפה, דקירת נקודה, טופס הזנה, צפייה, רשימה, ייצוא.
 import { createStore } from './store.js';
 import { resizeImage } from './photos.js';
+import { govmapAllowed, isGovmapActive, showGovmap, hideGovmap, moveTo as gmMoveTo, drawPoints as gmDrawPoints } from './govmap.js';
 import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS, EXTRA_FIELDS, ADMIN_PHONES, CONTACT_PHONE } from './config.js';
 
 const $ = id => document.getElementById(id);
@@ -69,39 +70,73 @@ document.querySelectorAll('.sheet').forEach(sheet => {
 // ============================================================================
 const map = L.map('map', { zoomControl: false, center: MAP_CENTER, zoom: MAP_ZOOM });
 L.control.zoom({ position: 'topleft' }).addTo(map);
+window.__fieldCollect = { map };          // גישה לקריאה בלבד לבדיקות QA
 L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
 
 // שכבות (js/config.js → LAYERS): OSM · אורתופוטו מפ"י · מבנים מפ"י
-const layerDef = l => (l.url ? { url: l.url, opt: l.opt, sub: l.sub, pending: false }
+const layerDef = l => (l.type === 'govmap'
+    ? (govmapAllowed() ? { govmap: true, sub: l.sub, pending: false }
+        : l.fallback ? { url: l.fallback.url, opt: l.fallback.opt, sub: l.fallback.sub, pending: true }
+            : { url: '', sub: 'זמין בדומיין המורשה ל-GovMap', pending: true })
+    : l.url ? { url: l.url, opt: l.opt, sub: l.sub, pending: false }
     : l.fallback ? { url: l.fallback.url, opt: l.fallback.opt, sub: l.fallback.sub, pending: true }
         : { url: '', opt: l.opt, sub: 'ממתינה לחיבור', pending: true });
 const makeLayer = l => {
     const d = layerDef(l);
     if (!d.url) return null;
-    return l.type === 'wms' ? L.tileLayer.wms(d.url, d.opt) : L.tileLayer(d.url, d.opt);
+    return l.type === 'wms' ? L.tileLayer.wms(d.url, d.opt) : L.tileLayer(d.url, d.opt);   // govmap חלופי → אריחי fallback
 };
 const BASES = LAYERS.filter(l => l.group === 'base');
 const OVERLAYS = LAYERS.filter(l => l.group === 'overlay');
 let baseLayer = null;
 let baseKey = localStorage.getItem('fc_base2') || BASES[0].id;
 if (!BASES.some(l => l.id === baseKey)) baseKey = BASES[0].id;
-function setBase(key) {
-    const def = BASES.find(l => l.id === key);
-    const lyr = makeLayer(def);
-    if (!lyr) return toast('שכבה זו ממתינה לחיבור שירות המרכז למיפוי ישראל', 'err');
-    if (baseLayer) map.removeLayer(baseLayer);
-    baseLayer = lyr.addTo(map);
-    baseLayer.bringToBack();
+// ---- GovMap: מפת המרכז למיפוי ישראל, מוצגת מעל Leaflet ומסונכרנת איתו ----
+let gmSync = false;                       // תזוזת Leaflet שמקורה ב-GovMap (לא להחזיר אליו)
+const gmHandlers = {
+    onClick: ll => { if (placing) setDraft(L.latLng(ll.lat, ll.lng), null); },
+    onPoint: id => openDetail(id),
+    onExtent: (ll, z) => { gmSync = true; map.setView([ll.lat, ll.lng], z == null ? map.getZoom() : z, { animate: false }); gmSync = false; }
+};
+map.on('moveend', () => { if (isGovmapActive() && !gmSync) gmMoveTo(map.getCenter(), map.getZoom()); });
+function gmRedraw() {
+    if (!isGovmapActive()) return;
+    const u = store && store.getUser();
+    try { gmDrawPoints(points, { mineId: u && u.id, draft }); } catch (e) { console.warn('GovMap draw', e); }
+}
+function markBase(key) {
     baseKey = key;
     try { localStorage.setItem('fc_base2', key); } catch (_) { }
     document.querySelectorAll('#baseLayers .layer-card').forEach(c => c.classList.toggle('active', c.dataset.key === key));
+}
+function setBase(key) {
+    const def = BASES.find(l => l.id === key);
+    const d = layerDef(def);
+    if (d.govmap) {
+        showGovmap({ background: def.background, center: map.getCenter(), zoom: map.getZoom() }, gmHandlers)
+            .then(() => { markBase(key); gmRedraw(); })
+            .catch(err => {
+                console.warn('GovMap', err);
+                hideGovmap();
+                toast('טעינת מפת GovMap נכשלה — מוצגת מפת OSM', 'err');
+                if (key !== BASES[0].id) setBase(BASES[0].id);
+            });
+        return;
+    }
+    const lyr = makeLayer(def);
+    if (!lyr) return toast(def.type === 'govmap' ? 'מפת GovMap זמינה רק בכתובת המורשית של היישום' : 'שכבה זו ממתינה לחיבור שירות', 'err');
+    hideGovmap();
+    if (baseLayer) map.removeLayer(baseLayer);
+    baseLayer = lyr.addTo(map);
+    baseLayer.bringToBack();
+    markBase(key);
 }
 const isMapi = l => l.id.startsWith('mapi');
 $('baseLayers').innerHTML = BASES.map(l => {
     const d = layerDef(l);
     return `<button class="layer-card" data-key="${l.id}">
         <span class="ic">${ms(l.icon)}</span><b>${esc(l.label)}</b><small>${esc(d.sub)}</small>
-        ${isMapi(l) ? `<span class="badge-mapi ${d.pending ? 'badge-wait' : ''}">${d.pending ? 'ממתין לחיבור מפ"י' : 'מפ"י'}</span>` : ''}
+        ${isMapi(l) ? `<span class="badge-mapi ${d.pending ? 'badge-wait' : ''}">${d.pending ? 'חלופי' : 'GovMap'}</span>` : ''}
     </button>`;
 }).join('');
 $('baseLayers').addEventListener('click', e => {
@@ -111,6 +146,7 @@ $('baseLayers').addEventListener('click', e => {
 setBase(baseKey);
 
 const overlayOn = new Map();
+$('overlaySec').hidden = $('overlayLayers').hidden = !OVERLAYS.length;
 $('overlayLayers').innerHTML = OVERLAYS.map(l => {
     const d = layerDef(l);
     return `<label class="overlay-row">
@@ -185,6 +221,7 @@ function renderMarkers() {
     });
     cluster.addLayers([...markers.values()]);
     updateStats();
+    gmRedraw();
 }
 // מונים מונפשים (כותרת + מסך פתיחה)
 function countTo(el, n) {
@@ -460,12 +497,14 @@ function setDraft(latlng, accuracy) {
     if (relocating) { relocating = false; updateFormCoords(); openSheet('formSheet'); }
     else openForm();
     focusAbove(latlng, Math.max(map.getZoom(), 15));
+    gmRedraw();
 }
 function clearDraft() {
     draft = null;
     if (draftMarker) { map.removeLayer(draftMarker); draftMarker = null; }
     if (editing && markers.has(editing.id)) markers.get(editing.id).setOpacity(1);
     editing = null;
+    gmRedraw();
 }
 function updateFormCoords() {
     if (!draft) return;

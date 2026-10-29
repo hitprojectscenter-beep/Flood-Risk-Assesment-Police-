@@ -43,8 +43,29 @@ async function routeOffline(ctx) {
             : `${LIBS}/fontsource-heebo-5.1.0/package/files/heebo-hebrew-${u.match(/heebo-(\d+)/)[1]}-normal.woff2`;
         fs.existsSync(p) ? r.fulfill({ body: fs.readFileSync(p), contentType: 'font/woff2' }) : r.abort();
     });
+    await ctx.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/proj4js\/2\.7\.5\/proj4\.js/, r =>
+        r.fulfill({ body: fs.readFileSync(`${LIBS}/proj4-2.7.5/package/dist/proj4.js`), contentType: 'application/javascript' }));
     await ctx.route(/esm\.sh|supabase\.co|tile\.|arcgisonline|cartocdn|israelhiking/, r => r.abort());
 }
+
+// GovMap מדומה — ה-API האמיתי פועל רק בדומיין המורשה, ולכן בודקים את לוגיקת השילוב מול מימוש מדומה
+const GOVMAP_MOCK = `(function(){
+  var cbs = { click: [], extent: [] }, geomCbs = [];
+  window.__gm = { created: null, bg: null, zooms: [], draws: [] };
+  function deferred(list){ return { progress: function(cb){ list.push(cb); return this; }, then: function(r){ r && r(); return this; } }; }
+  window.govmap = {
+    events: { CLICK: 'click', EXTENT_CHANGE: 'extent' },
+    geometryType: { POINT: 'point' }, drawType: { Point: 'point' },
+    createMap: function(id, o){ window.__gm.created = { id: id, opts: o }; window.__gm.bg = o.background; return Promise.resolve(); },
+    onEvent: function(ev){ return deferred(cbs[ev]); },
+    setBackground: function(b){ window.__gm.bg = b; },
+    zoomToXY: function(p){ window.__gm.zooms.push(p); },
+    displayGeometries: function(d){ window.__gm.draws.push(d); geomCbs = []; return deferred(geomCbs); }
+  };
+  window.__gmClick = function(x, y){ cbs.click.forEach(function(cb){ cb({ mapPoint: { x: x, y: y } }); }); };
+  window.__gmPoint = function(name){ geomCbs.forEach(function(cb){ cb({ data: { name: name } }); }); };
+  window.__gmPan = function(x, y, level){ cbs.extent.forEach(function(cb){ cb({ extent: { xmin: x - 500, xmax: x + 500, ymin: y - 500, ymax: y + 500 }, lod: { level: level } }); }); };
+})();`;
 
 async function newPage(b, device, extra = {}) {
     const ctx = await b.newContext({
@@ -99,14 +120,12 @@ check('גיליון השכבות נפתח', await isOpen(page, 'layersSheet'));
 const cards = await page.locator('#baseLayers .layer-card').allTextContents();
 check('שכבת OSM קיימת', cards.some(t => t.includes('OpenStreetMap')));
 check('שכבת אורתופוטו מפ"י קיימת', cards.some(t => t.includes('אורתופוטו')));
-check('שכבת מבנים קיימת', (await txt(page, '#overlayLayers')).includes('מבנים'));
-await page.click('#baseLayers .layer-card[data-key=mapi_ortho]'); await wait(300);
-check('החלפת רקע לאורתופוטו', await page.evaluate(() => document.querySelector('[data-key=mapi_ortho]').classList.contains('active')));
-check('הבחירה נשמרת', await page.evaluate(() => localStorage.getItem('fc_base2')) === 'mapi_ortho');
+check('שכבת רחובות ומבנים (GovMap) קיימת', cards.some(t => t.includes('רחובות ומבנים')));
+await page.click('#baseLayers .layer-card[data-key=dark]'); await wait(300);
+check('החלפת רקע (לילה)', await page.evaluate(() => document.querySelector('[data-key=dark]').classList.contains('active')));
+check('הבחירה נשמרת', await page.evaluate(() => localStorage.getItem('fc_base2')) === 'dark');
 await page.click('#baseLayers .layer-card[data-key=osm]');
-const bDisabled = await page.locator('#overlayLayers input[data-key=mapi_buildings]').isDisabled();
-const bHasUrl = await page.evaluate(async () => (await import('./js/config.js')).LAYERS.find(l => l.id === 'mapi_buildings').url);
-check('שכבת מבנים: מושבתת כל עוד אין כתובת שירות', bHasUrl ? !bDisabled : bDisabled);
+check('אין שכבות-על ריקות בתצוגה', await page.isHidden('#overlaySec'));
 await shot(page, 'qa-02-layers');
 await page.click('#layersSheet .sheet-close'); await wait(400);
 
@@ -322,6 +341,71 @@ await page.locator('#pointList li[data-id]').first().click(); await wait(700);
 check('משתמש אחר אינו רואה עריכה/מחיקה לנקודה שאינה שלו', (await page.locator('[data-act=edit]').count()) === 0);
 check('אין שגיאות JavaScript (מובייל)', page.errors.length === 0, page.errors.join(' | '));
 await ctx.close();
+
+// ---------------------------------------------------------------------------
+group('GovMap — אורתופוטו ורחובות ומבנים (מימוש מדומה)');
+{
+    const { ctx: gctx, page: g } = await newPage(b, devices['Pixel 7']);
+    await gctx.route(/govmap\.gov\.il\/govmap\/api\/govmap\.api\.js/, r => r.fulfill({ body: GOVMAP_MOCK, contentType: 'application/javascript' }));
+    await g.goto(BASE + '?demo', { waitUntil: 'domcontentloaded' }); await wait(1200);
+    await g.click('#splashGo'); await wait(700); await g.click('#modeBanner');
+    // נקודה קיימת לציור
+    await g.click('#addBtn'); await wait(300); await login(g, 'דנה', 'כהן', '050-1234567');
+    await g.click('#placeGpsBtn'); await wait(900); await g.fill('#fName', 'נקודת GovMap'); await g.click('#formSubmit'); await wait(1200);
+    await g.click('#detailSheet .sheet-close'); await wait(300);
+    await g.click('#layersBtn'); await wait(400);
+    const cardTxt = await txt(g, '#baseLayers');
+    check('שכבות GovMap ברשימה: אורתופוטו + רחובות ומבנים', cardTxt.includes('אורתופוטו') && cardTxt.includes('רחובות ומבנים') && cardTxt.includes('GovMap'));
+    await g.click('#baseLayers .layer-card[data-key=mapi_ortho]'); await wait(900);
+    const gm = await g.evaluate(() => window.__gm);
+    check('GovMap נטען עם המפתח המורשה', gm.created && gm.created.opts.token === 'b76f12e6-9b2b-4abb-8bca-558718cb52a1');
+    check('אורתופוטו = background 1', gm.bg === 1);
+    check('מפת GovMap מוצגת ו-Leaflet מוסתר', await g.isVisible('#govmapBox') && await g.evaluate(() => document.body.classList.contains('gm-on')));
+    check('מרכז המפה הומר ל-ITM (טווח ישראל)', gm.created.opts.center.x > 100000 && gm.created.opts.center.x < 300000 && gm.created.opts.center.y > 350000 && gm.created.opts.center.y < 800000);
+    const lastDraw = gm.draws[gm.draws.length - 1];
+    check('הנקודות הקיימות צוירו על GovMap', lastDraw && lastDraw.wkts.length === 1 && /^POINT\(\d+(\.\d+)? \d+(\.\d+)?\)$/.test(lastDraw.wkts[0]));
+    check('סמל נקודה מתמונה מקומית', lastDraw.symbols[0].url.includes('assets/pin'));
+    await g.click('#baseLayers .layer-card[data-key=mapi_buildings]'); await wait(400);
+    check('רחובות ומבנים = background 0', (await g.evaluate(() => window.__gm.bg)) === 0);
+    check('המפה לא נוצרת מחדש בהחלפת רקע', (await g.evaluate(() => window.__gm.created.id)) === 'govmapCanvas');
+    await g.click('#layersSheet .sheet-close'); await wait(300);
+    // לחיצה על נקודה ב-GovMap פותחת את הכרטיס
+    await g.evaluate(id => window.__gmPoint(id), lastDraw.names[0]); await wait(600);
+    check('לחיצה על נקודה ב-GovMap פותחת את פרטיה', await isOpen(g, 'detailSheet') && (await txt(g, '.detail-title')) === 'נקודת GovMap');
+    await g.click('#detailSheet .sheet-close'); await wait(300);
+    // דקירה בהקשה על GovMap (קואורדינטות ITM של מרכז תל אביב)
+    await g.click('#addBtn'); await wait(300);
+    await g.evaluate(() => window.__gmClick(179557.04, 665854.83)); await wait(700);
+    const co = await txt(g, '#formCoords');
+    check('דקירה ב-GovMap פותחת טופס', await isOpen(g, 'formSheet'));
+    check('המרת ITM→WGS84 מדויקת (תל אביב 32.0853, 34.7818)', co.includes('32.0853') && co.includes('34.7818'), co);
+    check('נקודת הטיוטה צוירה על GovMap', (await g.evaluate(() => window.__gm.draws[window.__gm.draws.length - 1].names.includes('__draft__'))));
+    await g.fill('#fName', 'נדקר ב-GovMap'); await g.click('#formSubmit'); await wait(1200);
+    check('הנקודה נשמרה', (await g.evaluate(() => document.getElementById('pointCount').dataset.n)) === '2');
+    // תזוזה ב-GovMap מסנכרנת את Leaflet
+    await wait(1000);
+    await g.evaluate(() => window.__gmPan(179557.04, 665854.83, 6)); await wait(300);
+    const lc = await g.evaluate(() => { const m = window.__fieldCollect.map; const c = m.getCenter(); return { lat: c.lat, lng: c.lng, z: m.getZoom() }; });
+    check('גרירה ב-GovMap מסנכרנת את מיקום המפה (Leaflet)', Math.abs(lc.lat - 32.0853) < 0.001 && Math.abs(lc.lng - 34.7818) < 0.001 && lc.z === 14, JSON.stringify(lc));
+    await g.click('#detailSheet .sheet-close').catch(() => { }); await wait(300);
+    await g.click('#layersBtn'); await wait(300);
+    await g.click('#baseLayers .layer-card[data-key=osm]'); await wait(500);
+    check('חזרה ל-OSM מסתירה את GovMap', await g.isHidden('#govmapBox') && !(await g.evaluate(() => document.body.classList.contains('gm-on'))));
+    check('אין שגיאות JavaScript (GovMap)', g.errors.length === 0, g.errors.join(' | '));
+    await gctx.close();
+
+    // כתובת שאינה מורשית — ללא GovMap, עם חלופה מסומנת
+    const { ctx: fctx, page: f } = await newPage(b, devices['Pixel 7']);
+    let gmRequested = false;
+    await fctx.route(/govmap\.gov\.il/, r => { gmRequested = true; r.abort(); });
+    await f.goto(BASE.replace('localhost', '127.0.0.1') + '?demo', { waitUntil: 'domcontentloaded' }); await wait(1200);
+    await f.click('#splashGo'); await wait(600);
+    await f.click('#layersBtn'); await wait(400);
+    check('דומיין לא מורשה: האורתופוטו מסומן כחלופי', (await txt(f, '#baseLayers .layer-card[data-key=mapi_ortho]')).includes('חלופי'));
+    await f.click('#baseLayers .layer-card[data-key=mapi_ortho]'); await wait(400);
+    check('דומיין לא מורשה: GovMap לא נטען', !gmRequested && await f.isHidden('#govmapBox'));
+    await fctx.close();
+}
 
 // ---------------------------------------------------------------------------
 group('דסקטופ');

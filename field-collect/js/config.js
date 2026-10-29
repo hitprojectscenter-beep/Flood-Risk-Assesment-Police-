@@ -35,7 +35,7 @@ export const BRAND = {
 // שכבות מפה
 // base    — שכבות רקע (נבחרת אחת)
 // overlay — שכבות-על (ניתן להפעיל כמה)
-// type: 'xyz' (תבנית {z}/{x}/{y}) או 'wms'
+// type: 'xyz' (תבנית {z}/{x}/{y}) · 'wms' · 'govmap' (מפת GovMap רשמית, background לפי GOVMAP)
 // שכבה בלי url מוצגת כ"ממתינה להגדרה" — כך מוסיפים את שירותי המרכז למיפוי
 // ישראל (מפ"י) ברגע שמתקבלת כתובת השירות / מפתח GovMap לדומיין של היישום.
 // ---------------------------------------------------------------------------
@@ -46,25 +46,23 @@ export const LAYERS = [
         opt: { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }
     },
     {
-        id: 'mapi_ortho', group: 'base', label: 'אורתופוטו', sub: 'המרכז למיפוי ישראל', icon: 'satellite_alt',
-        type: 'xyz', url: '',            // ← כתובת שירות האורתופוטו של מפ"י
-        opt: { maxZoom: 20, attribution: '© המרכז למיפוי ישראל' },
-        // עד להגדרת שירות מפ"י — צילום אוויר חלופי, מסומן בבירור כחלופה
+        id: 'mapi_ortho', group: 'base', label: 'אורתופוטו', sub: 'GovMap · המרכז למיפוי ישראל', icon: 'satellite_alt',
+        type: 'govmap', background: 1,
+        // מחוץ לדומיין המורשה ל-GovMap — צילום אוויר חלופי, מסומן בבירור
         fallback: {
-            sub: 'זמני: Esri (עד חיבור מפ"י)',
+            sub: 'חלופי: Esri (GovMap זמין בדומיין המורשה)',
             url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
             opt: { maxZoom: 19, attribution: 'Esri, Maxar, Earthstar Geographics' }
         }
     },
     {
+        id: 'mapi_buildings', group: 'base', label: 'רחובות ומבנים', sub: 'GovMap · המרכז למיפוי ישראל', icon: 'apartment',
+        type: 'govmap', background: 0
+    },
+    {
         id: 'dark', group: 'base', label: 'לילה', sub: 'רקע כהה', icon: 'dark_mode',
         type: 'xyz', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
         opt: { maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap © CARTO' }
-    },
-    {
-        id: 'mapi_buildings', group: 'overlay', label: 'מבנים', sub: 'המרכז למיפוי ישראל', icon: 'apartment',
-        type: 'wms', url: '',            // ← כתובת שירות WMS של שכבת המבנים (מפ"י / GovMap)
-        opt: { layers: '', format: 'image/png', transparent: true, minZoom: 14, maxZoom: 20, attribution: '© המרכז למיפוי ישראל' }
     }
 ];
 
@@ -87,3 +85,13 @@ export const ADMIN_PHONES = ['+972505714100'];
 
 // כפתור "יצירת קשר" — חיוג ישיר
 export const CONTACT_PHONE = '+972505714100';
+
+// ---------------------------------------------------------------------------
+// GovMap (המרכז למיפוי ישראל) — המפתח מונפק לדומיין ספציפי ועובד רק בו.
+// background: 0 = מפת רחובות ומבנים, 1 = צילום אוויר (אורתופוטו)
+// ---------------------------------------------------------------------------
+export const GOVMAP = {
+    token: 'b76f12e6-9b2b-4abb-8bca-558718cb52a1',
+    domains: ['flood-risk-assesment-police.vercel.app', 'localhost'],   // localhost — לבדיקות בלבד
+    script: 'https://www.govmap.gov.il/govmap/api/govmap.api.js'
+};
