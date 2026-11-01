@@ -3,7 +3,7 @@ import { createStore } from './store.js';
 import { resizeImage } from './photos.js';
 import { govmapAllowed, isGovmapActive, showGovmap, hideGovmap, moveTo as gmMoveTo, drawPoints as gmDrawPoints, markLocation as gmMark } from './govmap.js';
 import { searchPlaces } from './search.js';
-import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS, EXTRA_FIELDS, ADMIN_PHONES, CONTACT_PHONE, SEARCH_TYPES } from './config.js';
+import { MAX_PHOTOS, MAP_CENTER, MAP_ZOOM, BRAND, LAYERS, EXTRA_FIELDS, CONTACT_PHONE, SEARCH_TYPES } from './config.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -31,7 +31,7 @@ function toast(text, kind = '') {
 // ============================================================================
 // Sheets
 // ============================================================================
-const SHEETS = ['authSheet', 'formSheet', 'detailSheet', 'listSheet', 'layersSheet', 'searchSheet'];
+const SHEETS = ['authSheet', 'formSheet', 'detailSheet', 'listSheet', 'layersSheet', 'searchSheet', 'usersSheet'];
 function openSheet(id) {
     SHEETS.forEach(s => { if (s !== id) $(s).classList.remove('open'); });
     $(id).classList.add('open');
@@ -345,6 +345,13 @@ function openAuth(note) {
         $('profAvatar').textContent = (u.name || '?').trim().charAt(0);
         $('profName').textContent = u.name;
         $('profPhone').textContent = prettyPhone(u.phone);
+        $('profOrg').textContent = u.org || '';
+        const st = { pending: ['hourglass_top', 'ממתין לאישור מנהל — ניתן לצפות בנתונים; הזנת נקודות תתאפשר לאחר האישור'],
+            blocked: ['block', 'המשתמש חסום — פנו למנהל המערכת'], unregistered: ['person_alert', 'הרישום לא הושלם — התנתקו והתחברו מחדש'] }[u.status];
+        $('profStatus').hidden = !st;
+        $('profStatus').className = 'prof-status ' + (u.status || '');
+        if (st) $('profStatus').innerHTML = `${ms(st[0])} <span>${esc(st[1])}</span>`;
+        if (u.role === 'admin') $('profOrg').innerHTML = esc(u.org || '') + ' <span class="role-chip">מנהל</span>';
         const mine = points.filter(p => p.user_id === u.id);
         const photos = mine.reduce((s, p) => s + p.photo_paths.length, 0);
         $('profStats').innerHTML = `<div><b>${mine.length}</b><span>נקודות</span></div><div><b>${photos}</b><span>תמונות</span></div>`;
@@ -363,7 +370,7 @@ $('authForm').addEventListener('submit', async e => {
     btn.disabled = true;
     setMsg('authMsg', 'שולח קוד…', true);
     try {
-        otpCtx = { phone, first, last };
+        otpCtx = { phone, first, last, org: $('authOrg').value.trim() };
         await sendCode();
         authStep(2);
         $('otpCode').value = '';
@@ -389,8 +396,17 @@ $('otpForm').addEventListener('submit', async e => {
         authStep(1);
         closeSheet('authSheet');
         buzz([15, 40, 15]);
-        toast('ברוך/ה הבא/ה, ' + store.getUser().name, 'ok');
-        if (pendingAfterLogin) { const f = pendingAfterLogin; pendingAfterLogin = null; f(); }
+        const nu = store.getUser();
+        if (nu.status === 'pending') {
+            pendingAfterLogin = null;
+            toast('נרשמת בהצלחה! הבקשה הועברה לאישור מנהל — תקבל/י גישה להזנת נתונים לאחר האישור', 'ok');
+        } else if (nu.status === 'blocked') {
+            pendingAfterLogin = null;
+            toast('המשתמש חסום — פנו למנהל המערכת', 'err');
+        } else {
+            toast('ברוך/ה הבא/ה, ' + nu.name, 'ok');
+            if (pendingAfterLogin) { const f = pendingAfterLogin; pendingAfterLogin = null; f(); }
+        }
     } catch (err) {
         setMsg('otpMsg', err.message, false);
         $('otpCode').select();
@@ -414,12 +430,16 @@ $('logoutBtn').addEventListener('click', async () => {
 });
 $('myPointsBtn').addEventListener('click', () => { $('listMine').checked = true; openList(); });
 
-// מנהל = משתמש מאומת (SMS) שמספרו ב-ADMIN_PHONES
-const isAdmin = () => { const u = store && store.getUser(); return !!(u && ADMIN_PHONES.includes(u.phone)); };
+// הרשאות — לפי פרופיל המשתמש בשרת (fc_users): תפקיד + סטטוס אישור
+const isApproved = () => { const u = store && store.getUser(); return !!(u && u.status === 'approved'); };
+const isAdmin = () => { const u = store && store.getUser(); return !!(u && u.role === 'admin' && u.status === 'approved'); };
+const canEdit = p => { const u = store && store.getUser(); return !!(u && u.status === 'approved' && (u.id === p.user_id || u.role === 'admin')); };
 
 function onAuthChanged() {
     const u = store.getUser();
     document.body.classList.toggle('is-admin', isAdmin());
+    document.body.classList.toggle('is-pending', !!(u && u.status !== 'approved'));
+    if (isAdmin()) refreshPendingBadge();
     $('userBtnLabel').textContent = u ? u.name : 'כניסה / הרשמה';
     $('userBtn').classList.toggle('logged', !!u);
     renderMarkers();
@@ -427,7 +447,13 @@ function onAuthChanged() {
 }
 
 function requireLogin(action, note) {
-    if (store.getUser()) return true;
+    const u = store.getUser();
+    if (u && u.status === 'approved') return true;
+    if (u) {                                   // מחובר אך טרם אושר / חסום
+        openAuth(u.status === 'blocked' ? 'המשתמש חסום — פנו למנהל המערכת'
+            : 'הרישום שלך ממתין לאישור מנהל. לאחר האישור תוכל/י לדקור נקודות ולהזין נתונים.');
+        return false;
+    }
     pendingAfterLogin = action;
     setAuthTab();
     openAuth(note || 'יש להתחבר או להירשם כדי לדקור נקודה ולהזין נתונים');
@@ -649,7 +675,7 @@ $('pointForm').addEventListener('submit', async e => {
     if (!location_name) { setMsg('formMsg', 'יש להזין שם מיקום', false); return $('fName').focus(); }
     if (!reporter_name) { setMsg('formMsg', 'יש להזין שם מזין', false); return $('fReporter').focus(); }
     if (!draft) return setMsg('formMsg', 'יש לבחור מיקום במפה', false);
-    if (!store.getUser()) return requireLogin(() => openSheet('formSheet'), 'פג תוקף החיבור — יש להתחבר מחדש');
+    if (!isApproved()) return requireLogin(() => openSheet('formSheet'), 'פג תוקף החיבור — יש להתחבר מחדש');
 
     const btn = $('formSubmit');
     btn.disabled = true;
@@ -701,8 +727,10 @@ function renderDetail(id) {
     const p = points.find(x => x.id === id);
     if (!p) return;
     const u = store.getUser();
-    const mine = u && u.id === p.user_id;
-    const edited = p.updated_at && p.updated_at.slice(0, 16) !== p.created_at.slice(0, 16);
+    const mine = canEdit(p);
+    // נחשב "עודכן" אם עברו מעל 30 שניות מההוספה, או שמשתמש אחר עדכן
+    const byOther = !!(p.updated_by && p.updated_by !== p.user_id);
+    const edited = !!p.updated_at && (new Date(p.updated_at) - new Date(p.created_at) > 30000 || byOther);
     const n = p.photos.length;
     $('detailSheet').classList.toggle('has-hero', n > 0);
     $('detailBody').innerHTML = `
@@ -716,6 +744,10 @@ function renderDetail(id) {
             <span>${ms('person')} ${esc(p.reporter_name)}</span>
             <span>${ms('schedule')} ${esc(fmtDate(p.created_at))}</span>
             ${edited ? `<span>${ms('edit')} עודכן ${esc(fmtDate(p.updated_at))}</span>` : ''}
+        </div>
+        <div class="added-by">
+            ${ms('verified_user')} <span>נוסף ע״י <b>${esc(p.created_by_name || p.reporter_name)}</b></span>
+            ${byOther && p.updated_by_name ? `<span class="sep">·</span><span>עודכן ע״י <b>${esc(p.updated_by_name)}</b></span>` : ''}
         </div>
         <div class="coords-row">
             <span class="coords" dir="ltr">${fmtCoord(p.lat, p.lng)}${p.accuracy_m ? ` (±${p.accuracy_m}m)` : ''}</span>
@@ -812,7 +844,7 @@ function filteredPoints() {
     return points.filter(p => {
         if ($('listMine').checked && (!u || p.user_id !== u.id)) return false;
         if (!q) return true;
-        return [p.location_name, p.reporter_name, p.notes, ...EXTRA_FIELDS.map(f => p[f.key])].some(s => (s || '').toLowerCase().includes(q));
+        return [p.location_name, p.reporter_name, p.created_by_name, p.notes, ...EXTRA_FIELDS.map(f => p[f.key])].some(s => (s || '').toLowerCase().includes(q));
     });
 }
 function renderList() {
@@ -823,7 +855,7 @@ function renderList() {
             ${p.photos.length ? `<img src="${esc(p.photos[0])}" alt="" loading="lazy">` : '<div class="noimg">📍</div>'}
             <div class="li-body">
                 <div class="li-title">${esc(p.location_name)}</div>
-                <div class="li-meta">${esc(p.reporter_name)} · ${esc(fmtDate(p.created_at))}${p.photos.length ? ' · 📷 ' + p.photos.length : ''}</div>
+                <div class="li-meta">${esc(p.created_by_name || p.reporter_name)} · ${esc(fmtDate(p.created_at))}${p.photos.length ? ' · 📷 ' + p.photos.length : ''}</div>
                 ${(p.site_type || p.project_status) ? `<div class="li-tags">${[p.site_type, p.project_status].filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
                 ${p.notes ? `<div class="li-notes">${esc(p.notes)}</div>` : ''}
             </div>
@@ -863,27 +895,34 @@ function exportGeojson() {
             properties: {
                 id: p.id, location_name: p.location_name, reporter_name: p.reporter_name, notes: p.notes,
                 ...Object.fromEntries(EXTRA_FIELDS.map(f => [f.key, p[f.key] || ''])),
-                accuracy_m: p.accuracy_m, created_at: p.created_at, updated_at: p.updated_at, photos: publicPhotos(p)
+                accuracy_m: p.accuracy_m, created_by: p.user_id, created_by_name: p.created_by_name || '', created_at: p.created_at,
+                updated_by_name: p.updated_by_name || '', updated_at: p.updated_at, photos: publicPhotos(p)
             }
         }))
     };
     download(`field-points-${stamp()}.geojson`, JSON.stringify(fc, null, 2), 'application/geo+json');
 }
 $('exportGeojson').addEventListener('click', exportGeojson);
-function exportCsv() {
+async function exportCsv() {
     if (!isAdmin()) return toast('הורדת נתונים זמינה למנהל המערכת בלבד', 'err');
     const list = filteredPoints();
+    let byId = new Map();                     // פרטי המשתמש הרשום שהוסיף/עדכן (נייד, ארגון)
+    try { byId = new Map((await store.listUsers()).map(u => [u.id, u])); } catch (_) { }
+    const who = id => byId.get(id) || {};
     if (!list.length) return toast('אין נקודות לייצוא', 'err');
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const maxPh = Math.max(0, ...list.map(p => publicPhotos(p).length));
     const appLink = id => location.origin + location.pathname + '?p=' + id;
     const head = ['מזהה', 'שם המיקום', 'שם המזין', ...EXTRA_FIELDS.map(f => f.label), 'הערות', 'קו רוחב (lat)', 'קו אורך (lng)', 'דיוק GPS (מ\')',
-        'תאריך הזנה', 'תאריך עדכון', 'מספר תמונות', 'קישור למפה', 'קישור ביישום']
+        'נוסף ע״י (משתמש רשום)', 'נייד המוסיף', 'ארגון המוסיף', 'מזהה משתמש', 'תאריך הזנה', 'עודכן ע״י', 'תאריך עדכון',
+        'מספר תמונות', 'קישור למפה', 'קישור ביישום']
         .concat(Array.from({ length: maxPh }, (_, i) => 'תמונה ' + (i + 1)));
     const rows = list.map(p => {
         const ph = publicPhotos(p);
+        const c = who(p.user_id);
         return [p.id, p.location_name, p.reporter_name, ...EXTRA_FIELDS.map(f => p[f.key] || ''), p.notes, p.lat.toFixed(6), p.lng.toFixed(6), p.accuracy_m,
-            fmtDate(p.created_at), p.updated_at ? fmtDate(p.updated_at) : '', p.photo_paths.length,
+            p.created_by_name || c.name || '', prettyPhone(c.phone), c.org || '', p.user_id,
+            fmtDate(p.created_at), p.updated_by_name || '', p.updated_at ? fmtDate(p.updated_at) : '', p.photo_paths.length,
             `https://www.google.com/maps?q=${p.lat},${p.lng}`, appLink(p.id)]
             .concat(Array.from({ length: maxPh }, (_, i) => ph[i] || ''));
     });
@@ -899,6 +938,97 @@ const allPoints = fn => () => { $('listSearch').value = ''; $('listMine').checke
 $('csvBtn').addEventListener('click', allPoints(exportCsv));
 $('geojsonAllBtn').addEventListener('click', allPoints(exportGeojson));
 $('contactBtn').href = 'tel:' + CONTACT_PHONE;
+
+// ============================================================================
+// ניהול משתמשים (מנהל בלבד — נאכף גם בשרת ב-RLS)
+// ============================================================================
+let users = [], usersFilter = 'pending';
+const STATUS_HE = { pending: 'ממתין לאישור', approved: 'מאושר', blocked: 'חסום' };
+async function refreshPendingBadge() {
+    if (!store.usersEnabled) return;
+    try {
+        users = await store.listUsers();
+        const n = users.filter(u => u.status === 'pending').length;
+        $('pendingBadge').hidden = !n;
+        $('pendingBadge').textContent = n;
+    } catch (_) { }
+}
+async function openUsers() {
+    if (!isAdmin()) return;
+    openSheet('usersSheet');
+    if (!store.usersEnabled) {
+        $('usersList').innerHTML = '';
+        $('usersMsg').textContent = 'ניהול משתמשים יופעל לאחר הרצת supabase/002_users.sql ב-Supabase.';
+        return;
+    }
+    $('usersMsg').textContent = 'טוען…';
+    try {
+        [users] = await Promise.all([store.listUsers()]);
+        $('autoApprove').checked = !!(await store.getSettings()).auto_approve;
+        $('usersMsg').textContent = '';
+    } catch (e) { $('usersMsg').textContent = e.message; }
+    renderUsers();
+}
+function renderUsers() {
+    const q = $('usersSearch').value.trim().toLowerCase();
+    const cnt = s => users.filter(u => u.status === s).length;
+    $('cntPending').textContent = cnt('pending') || '';
+    $('cntApproved').textContent = cnt('approved') || '';
+    $('cntBlocked').textContent = cnt('blocked') || '';
+    $('usersCount').textContent = `(${users.length})`;
+    document.querySelectorAll('#usersTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.f === usersFilter));
+    const me = store.getUser();
+    const list = users.filter(u => (usersFilter === 'all' || u.status === usersFilter) &&
+        (!q || [u.name, u.phone, prettyPhone(u.phone), u.org].some(v => (v || '').toLowerCase().includes(q))));
+    $('usersList').innerHTML = list.length ? list.map(u => {
+        const n = points.filter(p => p.user_id === u.id).length;
+        const self = me && me.id === u.id;
+        return `<li data-id="${u.id}">
+            <div class="u-head">
+                <div class="u-avatar ${u.role === 'admin' ? 'admin' : ''}">${esc((u.first || u.name || '?').charAt(0))}</div>
+                <div class="u-main">
+                    <b>${esc(u.name)}${u.role === 'admin' ? ' <span class="role-chip">מנהל</span>' : ''}${self ? ' <span class="muted">(את/ה)</span>' : ''}</b>
+                    <small><a href="tel:${esc(u.phone)}" dir="ltr">${esc(prettyPhone(u.phone))}</a>${u.org ? ' · ' + esc(u.org) : ''}</small>
+                    <small>${ms('location_on')} ${n} נקודות · נרשם ${esc(fmtDate(u.created_at))}</small>
+                </div>
+                <span class="u-status ${u.status}">${STATUS_HE[u.status] || u.status}</span>
+            </div>
+            ${self ? '' : `<div class="u-actions">
+                ${u.status !== 'approved' ? `<button class="btn btn-xs" data-u="approve">${ms('check_circle')} אישור</button>` : ''}
+                ${u.status !== 'blocked' ? `<button class="btn btn-xs btn-danger" data-u="block">${ms('block')} חסימה</button>` : ''}
+                ${u.status === 'approved' ? (u.role === 'admin'
+                    ? `<button class="btn btn-xs btn-ghost" data-u="demote">${ms('remove_moderator')} הסרת הרשאת מנהל</button>`
+                    : `<button class="btn btn-xs btn-ghost" data-u="promote">${ms('add_moderator')} מינוי למנהל</button>`) : ''}
+                ${n ? `<button class="btn btn-xs btn-ghost" data-u="points">${ms('map')} הנקודות</button>` : ''}
+            </div>`}
+        </li>`;
+    }).join('') : `<li class="empty">${usersFilter === 'pending' ? 'אין משתמשים הממתינים לאישור' : 'לא נמצאו משתמשים'}</li>`;
+}
+$('usersBtn').addEventListener('click', openUsers);
+$('usersTabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) { usersFilter = t.dataset.f; renderUsers(); } });
+$('usersSearch').addEventListener('input', renderUsers);
+$('autoApprove').addEventListener('change', async e => {
+    try { await store.setSettings({ auto_approve: e.target.checked }); toast(e.target.checked ? 'משתמשים חדשים יאושרו אוטומטית' : 'משתמשים חדשים ימתינו לאישור מנהל', 'ok'); }
+    catch (err) { e.target.checked = !e.target.checked; toast(err.message, 'err'); }
+});
+$('usersList').addEventListener('click', async e => {
+    const b = e.target.closest('[data-u]');
+    if (!b) return;
+    const u = users.find(x => x.id === b.closest('li').dataset.id);
+    const act = b.dataset.u;
+    if (act === 'points') { closeSheet('usersSheet'); $('listMine').checked = false; $('listSearch').value = u.name; return openList(); }
+    const patch = { approve: { status: 'approved' }, block: { status: 'blocked' }, promote: { role: 'admin' }, demote: { role: 'editor' } }[act];
+    if (act === 'block' && !confirm(`לחסום את ${u.name}? המשתמש לא יוכל להזין או לערוך נתונים.`)) return;
+    if (act === 'promote' && !confirm(`למנות את ${u.name} למנהל? מנהל יכול לאשר משתמשים, לערוך ולמחוק כל נקודה ולהוריד את הנתונים.`)) return;
+    b.disabled = true;
+    try {
+        const nu = await store.updateUser(u.id, patch);
+        Object.assign(u, nu);
+        toast({ approve: 'המשתמש אושר ✓', block: 'המשתמש נחסם', promote: 'מונה למנהל ✓', demote: 'הרשאת המנהל הוסרה' }[act], 'ok');
+        renderUsers();
+        refreshPendingBadge();
+    } catch (err) { toast(err.message, 'err'); b.disabled = false; }
+});
 
 // ============================================================================
 // Search (GovMap: יישוב · שכונה · רחוב · כתובת · נקודת עניין · צומת)

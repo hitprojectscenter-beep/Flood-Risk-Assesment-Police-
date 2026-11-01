@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=swap">
-    <link rel="stylesheet" href="css/style.css?v=20261029b">
+    <link rel="stylesheet" href="css/style.css?v=20261101a">
 </head>
 <body>
     <!-- ===== Splash ===== -->
@@ -120,6 +120,10 @@
                     </label>
                 </div>
                 <label class="field">
+                    <span>ארגון / יחידה / תפקיד</span>
+                    <input id="authOrg" type="text" maxlength="120" autocomplete="organization" placeholder="לדוגמה: מנהלת תקומה — מערך הנדסה">
+                </label>
+                <label class="field">
                     <span>מספר טלפון נייד <b class="req">*</b></span>
                     <input id="authPhone" type="tel" inputmode="tel" autocomplete="tel-national" required placeholder="050-1234567" dir="ltr" maxlength="20">
                 </label>
@@ -149,11 +153,14 @@
                 <div>
                     <div id="profName" class="prof-name"></div>
                     <div id="profPhone" class="prof-email" dir="ltr"></div>
+                    <div id="profOrg" class="prof-org"></div>
                 </div>
             </div>
+            <div id="profStatus" class="prof-status" hidden></div>
             <div id="profStats" class="prof-stats"></div>
             <div class="admin-only admin-box">
                 <div class="sec-label"><span class="ms">admin_panel_settings</span> כלי מנהל</div>
+                <button id="usersBtn" class="btn btn-block"><span class="ms">group</span> ניהול משתמשים <span id="pendingBadge" class="pending-badge" hidden></span></button>
                 <button id="csvBtn" class="btn btn-block"><span class="ms">download</span> הורדת כל הנתונים — CSV (כולל קישורי תמונות)</button>
                 <button id="geojsonAllBtn" class="btn btn-block btn-ghost"><span class="ms">data_object</span> הורדת כל הנתונים — GeoJSON</button>
             </div>
@@ -233,6 +240,26 @@
         </div>
     </section>
 
+    <!-- ===== Users management sheet (admin) ===== -->
+    <section id="usersSheet" class="sheet sheet-tall" aria-label="ניהול משתמשים">
+        <div class="sheet-handle"></div>
+        <button class="sheet-close" data-close aria-label="סגירה">✕</button>
+        <h2>ניהול משתמשים <small id="usersCount" class="muted"></small></h2>
+        <label class="auto-approve">
+            <span class="txt"><b>אישור אוטומטי למשתמשים חדשים</b><small>כבוי: כל נרשם חדש ממתין לאישור מנהל לפני שיוכל להזין נתונים</small></span>
+            <span class="switch"><input id="autoApprove" type="checkbox"><span></span></span>
+        </label>
+        <div class="tabs" id="usersTabs">
+            <button class="tab active" data-f="pending">ממתינים <b id="cntPending"></b></button>
+            <button class="tab" data-f="approved">מאושרים <b id="cntApproved"></b></button>
+            <button class="tab" data-f="blocked">חסומים <b id="cntBlocked"></b></button>
+            <button class="tab" data-f="all">הכל</button>
+        </div>
+        <input id="usersSearch" class="users-search" type="search" placeholder="חיפוש לפי שם, נייד או ארגון">
+        <ul id="usersList" class="users-list"></ul>
+        <p id="usersMsg" class="hint small"></p>
+    </section>
+
     <!-- ===== Search sheet ===== -->
     <section id="searchSheet" class="sheet sheet-tall" aria-label="חיפוש במפה">
         <div class="sheet-handle"></div>
@@ -273,6 +300,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script type="module" src="js/app.js?v=20261029b"></script>
+    <script type="module" src="js/app.js?v=20261101a"></script>
 </body>
 </html>

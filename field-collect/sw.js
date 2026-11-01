@@ -2,10 +2,10 @@
 // קבצי היישום: network-first עם נפילה למטמון (טעינה גם בקליטה חלשה).
 // אריחי מפה: cache-first (אזורים שנצפו זמינים גם ללא קליטה).
 // בקשות ל-Supabase (נתונים/הרשמה/העלאות) לעולם אינן נשמרות במטמון.
-const SHELL = 'fcollect-shell-v8';
+const SHELL = 'fcollect-shell-v9';
 const TILES = 'fcollect-tiles-v1';
 const SHELL_FILES = [
-  './', './index.html', './css/style.css?v=20261029b', './js/app.js?v=20261029b', './assets/tkuma-logo.png',
+  './', './index.html', './css/style.css?v=20261101a', './js/app.js?v=20261101a', './assets/tkuma-logo.png',
   './js/store.js', './js/photos.js', './js/govmap.js', './js/search.js', './assets/pin.png', './assets/pin-mine.png', './assets/pin-draft.png', './js/config.js', './manifest.json', './icon.svg',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',

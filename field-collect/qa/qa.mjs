@@ -70,7 +70,7 @@ const GOVMAP_MOCK = `(function(){
   window.__gmPan = function(x, y, level){ cbs.extent.forEach(function(cb){ cb({ extent: { xmin: x - 500, xmax: x + 500, ymin: y - 500, ymax: y + 500 }, lod: { level: level } }); }); };
 })();`;
 
-async function newPage(b, device, extra = {}) {
+async function newPage(b, device, extra = {}, opts = {}) {
     const ctx = await b.newContext({
         ...device, locale: 'he-IL', serviceWorkers: 'block',
         geolocation: { latitude: 31.5245, longitude: 34.5953, accuracy: 7 }, permissions: ['geolocation', 'clipboard-read', 'clipboard-write'],
@@ -79,6 +79,10 @@ async function newPage(b, device, extra = {}) {
     await routeOffline(ctx);
     // GovMap האמיתי פועל רק בדומיין המורשה — בבדיקות הוא חסום, או מוחלף במימוש מדומה (בקבוצת GovMap)
     await ctx.route(/www\.govmap\.gov\.il\/govmap\/api/, r => r.abort());
+    // ברירת מחדל בבדיקות: אישור אוטומטי (תהליך האישור נבדק בקבוצה ייעודית עם opts.approval)
+    if (!opts.approval) await ctx.addInitScript(() => {
+        if (!localStorage.getItem('fc_demo_settings')) localStorage.setItem('fc_demo_settings', JSON.stringify({ auto_approve: true }));
+    });
     const page = await ctx.newPage();
     page.errors = [];
     page.on('pageerror', e => page.errors.push(e.message));
@@ -90,8 +94,8 @@ const isOpen = (page, id) => page.evaluate(i => document.getElementById(i).class
 const txt = (page, sel) => page.textContent(sel).then(t => (t || '').trim());
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
-async function login(page, first = 'דנה', last = 'כהן', phone = '050-1234567') {
-    await page.fill('#authFirst', first); await page.fill('#authLast', last); await page.fill('#authPhone', phone);
+async function login(page, first = 'דנה', last = 'כהן', phone = '050-1234567', org = '') {
+    await page.fill('#authFirst', first); await page.fill('#authLast', last); await page.fill('#authPhone', phone); await page.fill('#authOrg', org);
     await page.click('#authSubmit'); await wait(400);
     const code = (await txt(page, '.demo-code b'));
     await page.fill('#otpCode', code); await wait(700);
@@ -346,6 +350,101 @@ await page.locator('#pointList li[data-id]').first().click(); await wait(700);
 check('משתמש אחר אינו רואה עריכה/מחיקה לנקודה שאינה שלו', (await page.locator('[data-act=edit]').count()) === 0);
 check('אין שגיאות JavaScript (מובייל)', page.errors.length === 0, page.errors.join(' | '));
 await ctx.close();
+
+// ---------------------------------------------------------------------------
+group('רישום משתמשים, אישור מנהל, ניהול משתמשים ו"מי הוסיף"');
+{
+    const { ctx: uctx, page: u } = await newPage(b, devices['Pixel 7'], {}, { approval: true });
+    const relogin = async (...a) => {
+        if (await u.evaluate(() => document.getElementById('userBtn').classList.contains('logged'))) {
+            await u.click('#userBtn'); await wait(300); await u.click('#logoutBtn'); await wait(400);
+        }
+        await u.click('#userBtn'); await wait(300); await login(u, ...a); await wait(300);
+    };
+    const closeAll = () => u.evaluate(() => document.querySelectorAll('.sheet.open .sheet-close').forEach(b => b.click()));
+    await u.goto(BASE + '?demo', { waitUntil: 'domcontentloaded' }); await wait(1200);
+    await u.click('#splashGo'); await wait(600); await u.click('#modeBanner');
+    // 1) נרשמת חדשה — ממתינה לאישור
+    await u.click('#addBtn'); await wait(300);
+    check('טופס הרישום כולל ארגון/יחידה/תפקיד', await u.isVisible('#authOrg'));
+    await login(u, 'רונית', 'לוי', '052-1111111', 'מערך הנדסה'); await wait(300);
+    check('נרשמת חדשה מקבלת הודעת "ממתין לאישור"', (await txt(u, '#toast')).includes('לאישור מנהל'));
+    check('משתמש ממתין לא נכנס למצב דקירה', !(await u.evaluate(() => document.body.classList.contains('placing'))));
+    await u.click('#addBtn'); await wait(400);
+    check('ממתין: לחיצה על דקירה מסבירה שהרישום ממתין', await isOpen(u, 'authSheet') && (await txt(u, '#authNote')).includes('ממתין לאישור'));
+    check('ממתין: סטטוס בפרופיל', (await txt(u, '#profStatus')).includes('ממתין') && (await txt(u, '#profOrg')).includes('מערך הנדסה'));
+    check('ממתין: אין כלי מנהל', await u.isHidden('#usersBtn'));
+    // 2) מנהל מאשר
+    await closeAll(); await wait(300);
+    await relogin('מנהל', 'המערכת', '050-5714100', 'מנהלת תקומה');
+    check('מנהל מאושר אוטומטית', (await txt(u, '#toast')).includes('ברוך'));
+    await u.click('#userBtn'); await wait(500);
+    check('תג "ממתינים לאישור" על כפתור ניהול המשתמשים', (await txt(u, '#pendingBadge')) === '1' && await u.isVisible('#pendingBadge'));
+    await u.click('#usersBtn'); await wait(600);
+    check('מסך ניהול משתמשים נפתח', await isOpen(u, 'usersSheet'));
+    check('לשונית "ממתינים" מציגה את רונית עם נייד וארגון', (await txt(u, '#usersList')).includes('רונית לוי') && (await txt(u, '#usersList')).includes('052-1111111') && (await txt(u, '#usersList')).includes('מערך הנדסה'));
+    await shot(u, 'qa-08-users');
+    await u.locator('#usersList [data-u=approve]').first().click(); await wait(500);
+    check('אישור משתמש', (await txt(u, '#toast')).includes('אושר') && (await txt(u, '#usersList')).includes('אין משתמשים הממתינים'));
+    await u.click('#usersTabs .tab[data-f=approved]'); await wait(200);
+    check('לשונית "מאושרים" כוללת את רונית ואת המנהל', (await u.locator('#usersList li[data-id]').count()) === 2);
+    check('אין פעולות על המשתמש עצמו', (await u.locator('#usersList li', { hasText: '(את/ה)' }).locator('[data-u]').count()) === 0);
+    await u.fill('#usersSearch', '1111'); await wait(150);
+    check('חיפוש משתמש לפי נייד', (await u.locator('#usersList li[data-id]').count()) === 1);
+    await u.fill('#usersSearch', '');
+    // 3) רונית (מאושרת) מוסיפה נקודה — "נוסף ע״י" נרשם
+    await closeAll(); await wait(300);
+    await relogin('רונית', 'לוי', '052-1111111', 'מערך הנדסה');
+    check('אחרי האישור: כניסה רגילה', (await txt(u, '#toast')).includes('ברוך'));
+    await u.click('#addBtn'); await wait(300); await u.click('#placeGpsBtn'); await wait(900);
+    await u.fill('#fReporter', 'צוות שטח דרום');
+    await u.fill('#fName', 'גשר נחל שקמה'); await u.click('#formSubmit'); await wait(1200);
+    check('נוסף ע״י המשתמש הרשום (גם כששם המזין שונה)', (await txt(u, '.added-by')).includes('נוסף ע״י רונית לוי') && (await txt(u, '.detail-meta')).includes('צוות שטח דרום'));
+    // 4) מנהל עורך נקודה של משתמשת אחרת — המוסיף המקורי נשמר
+    await closeAll(); await wait(300);
+    await relogin('מנהל', 'המערכת', '050-5714100', 'מנהלת תקומה');
+    await u.click('#listBtn'); await wait(400); await u.locator('#pointList li[data-id]').first().click(); await wait(700);
+    check('מנהל יכול לערוך ולמחוק נקודה של אחרים', (await u.locator('[data-act=edit]').count()) === 1 && (await u.locator('[data-act=delete]').count()) === 1);
+    await u.click('[data-act=edit]'); await wait(500);
+    await u.fill('#fNotes', 'אומת ע״י המנהל'); await u.click('#formSubmit'); await wait(1200);
+    const ab = await txt(u, '.added-by');
+    check('אחרי עריכת מנהל: "נוסף ע״י" נשמר + "עודכן ע״י"', ab.includes('נוסף ע״י רונית לוי') && ab.includes('עודכן ע״י מנהל המערכת'), ab);
+    // CSV — עמודות המשתמש
+    await closeAll(); await wait(300);
+    await u.click('#userBtn'); await wait(300);
+    const [dlU] = await Promise.all([u.waitForEvent('download'), u.click('#csvBtn')]);
+    const csvU = fs.readFileSync(await dlU.path(), 'utf8');
+    check('CSV: "נוסף ע״י", נייד וארגון המוסיף, "עודכן ע״י"', ['"נוסף ע״י (משתמש רשום)"', '"נייד המוסיף"', '"ארגון המוסיף"', '"עודכן ע״י"'].every(h => csvU.includes(h))
+        && csvU.includes('"רונית לוי","052-1111111","מערך הנדסה"') && csvU.includes('"מנהל המערכת"'));
+    // 5) חסימה
+    await u.click('#usersBtn'); await wait(500);
+    await u.click('#usersTabs .tab[data-f=approved]'); await wait(200);
+    await u.locator('#usersList li', { hasText: 'רונית' }).locator('[data-u=block]').click(); await wait(500);
+    check('חסימת משתמש', (await txt(u, '#toast')).includes('נחסם'));
+    // 6) אישור אוטומטי + מינוי מנהל
+    await u.check('#autoApprove'); await wait(300);
+    check('הפעלת אישור אוטומטי', (await txt(u, '#toast')).includes('יאושרו אוטומטית'));
+    await closeAll(); await wait(300);
+    await relogin('רונית', 'לוי', '052-1111111');
+    check('משתמש חסום מקבל הודעה ואינו יכול להזין', (await txt(u, '#toast')).includes('חסום'));
+    await u.click('#listBtn'); await wait(400); await u.locator('#pointList li[data-id]').first().click(); await wait(600);
+    check('משתמש חסום אינו יכול לערוך את הנקודה שלו', (await u.locator('[data-act=edit]').count()) === 0);
+    await closeAll(); await wait(300);
+    await relogin('משה', 'פרץ', '053-2222222', 'עיריית שדרות');
+    check('אישור אוטומטי: נרשם חדש מאושר מיד', (await txt(u, '#toast')).includes('ברוך') && !(await u.evaluate(() => document.body.classList.contains('is-pending'))));
+    await closeAll(); await wait(300);
+    await relogin('מנהל', 'המערכת', '050-5714100');
+    await u.click('#userBtn'); await wait(300); await u.click('#usersBtn'); await wait(500);
+    await u.click('#usersTabs .tab[data-f=approved]'); await wait(200);
+    await u.locator('#usersList li', { hasText: 'משה' }).locator('[data-u=promote]').click(); await wait(500);
+    check('מינוי משתמש למנהל', (await u.locator('#usersList li', { hasText: 'משה' }).locator('.role-chip').count()) === 1);
+    await u.click('#usersTabs .tab[data-f=blocked]'); await wait(200);
+    check('לשונית "חסומים"', (await txt(u, '#usersList')).includes('רונית לוי'));
+    await u.locator('#usersList [data-u=approve]').first().click(); await wait(400);
+    check('שחרור חסימה (אישור מחדש)', (await txt(u, '#toast')).includes('אושר'));
+    check('אין שגיאות JavaScript (משתמשים)', u.errors.length === 0, u.errors.join(' | '));
+    await uctx.close();
+}
 
 // ---------------------------------------------------------------------------
 group('חיפוש במפה (יישוב · שכונה · רחוב · כתובת · נקודת עניין · צומת)');

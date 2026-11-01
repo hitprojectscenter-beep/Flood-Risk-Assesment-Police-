@@ -668,3 +668,38 @@ body.gm-on .map-vignette { display: none; }
 .search-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--gold); border: 3px solid #fff;
     box-shadow: 0 0 0 0 rgba(180, 146, 78, .7); animation: me 1.8s infinite; }
 @media (max-width: 380px) { .icon-chip { width: 38px; height: 38px; } }
+
+/* ===== Users: registration status, added-by, management ===== */
+.prof-org { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.role-chip { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 999px; color: #fff; background: var(--grad); vertical-align: 1px; }
+.prof-status { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; margin-bottom: 12px; font-size: 13.5px; line-height: 1.5; }
+.prof-status.pending { background: #fff4e0; border: 1px solid rgba(191, 143, 0, .5); color: #5c3d00; }
+.prof-status.blocked, .prof-status.unregistered { background: #fff5f5; border: 1px solid rgba(192, 0, 0, .35); color: var(--danger); }
+.prof-status .ms { font-size: 20px; }
+.added-by { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 13px; color: var(--muted); margin: -4px 0 12px; }
+.added-by .ms { color: var(--ok); font-size: 18px; font-variation-settings: 'FILL' 1; }
+.added-by b { color: var(--navy-2); }
+.added-by .sep { opacity: .5; }
+.pending-badge { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 12px; font-weight: 800; display: inline-grid; place-items: center; }
+.auto-approve { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--gold-tint); border: 1px solid rgba(180, 146, 78, .45); margin-bottom: 12px; cursor: pointer; }
+.auto-approve .txt { flex: 1; display: flex; flex-direction: column; }
+.auto-approve small { font-size: 12px; color: var(--muted); }
+#usersTabs .tab { font-size: 13px; padding: 0 4px; }
+#usersTabs .tab b { font-size: 11px; margin-right: 3px; }
+.users-search { width: 100%; padding: 11px 13px; border-radius: 12px; border: 1px solid var(--stroke); background: #fff; font-size: 16px; margin-bottom: 10px; outline: none; }
+.users-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.users-list li { padding: 12px; border-radius: 16px; background: #fff; border: 1px solid var(--stroke); box-shadow: 0 4px 14px -8px rgba(0, 29, 53, .2); animation: rise .3s var(--ease) both; }
+.users-list li.empty { text-align: center; color: var(--muted); padding: 30px; }
+.u-head { display: flex; gap: 10px; align-items: flex-start; }
+.u-avatar { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; flex-shrink: 0; font-weight: 800; color: var(--navy-2); background: var(--gold-tint); border: 1px solid rgba(180, 146, 78, .4); }
+.u-avatar.admin { background: var(--grad); color: #fff; }
+.u-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.u-main b { font-size: 15px; }
+.u-main small { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.u-main a { color: var(--blue); text-decoration: none; }
+.u-main .ms { font-size: 14px; }
+.u-status { font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.u-status.pending { background: #fff4e0; color: #8a5a00; }
+.u-status.approved { background: #f3f8ef; color: var(--ok); }
+.u-status.blocked { background: #fff5f5; color: var(--danger); }
+.u-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--stroke); }
